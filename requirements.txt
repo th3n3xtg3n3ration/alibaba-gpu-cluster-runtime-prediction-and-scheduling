@@ -1,0 +1,38 @@
+# Core Python utilities
+numpy
+pandas
+scipy
+
+# Machine Learning Models
+scikit-learn
+lightgbm
+xgboost
+
+# Deep Learning
+torch
+
+# Visualization
+matplotlib
+seaborn
+
+# YAML configuration
+pyyaml
+
+# Notebook support
+jupyter
+ipykernel
+
+# Progress bars / utilities
+tqdm
+
+# File handling
+pyarrow
+
+# For reproducibility and experiment tracking
+joblib
+
+# Optional: for better plots
+plotly
+
+# If simulation uses priority queues / heaps
+heapdict

@@ -1,0 +1,14 @@
+{
+  "metrics": {
+    "mae": 6453.915551937525,
+    "rmse": 15714.746314893619,
+    "r2": -0.01940010224233757,
+    "train_time": 9.667312860488892
+  },
+  "best_params": {
+    "num_filters": 138,
+    "kernel_size": 1,
+    "learning_rate": 0.0075,
+    "batch_size": 824
+  }
+}

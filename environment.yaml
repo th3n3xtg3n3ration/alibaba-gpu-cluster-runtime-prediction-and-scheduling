@@ -1,0 +1,43 @@
+name: gpu-scheduling
+channels:
+  - conda-forge
+  - defaults
+
+dependencies:
+  # Python
+  - python=3.10
+
+  # Core scientific stack
+  - numpy
+  - pandas
+  - scipy
+
+  # Machine Learning
+  - scikit-learn
+  - lightgbm
+  - xgboost
+
+  # Visualization
+  - matplotlib
+  - seaborn
+  - plotly
+
+  # Jupyter / Notebook
+  - jupyter
+  - ipykernel
+
+  # YAML config
+  - pyyaml
+
+  # Utilities
+  - tqdm
+  - pyarrow
+  - joblib
+
+  # Optional but useful
+  - pip
+
+  - pip:
+      # Add packages here that are not available via Conda
+      # Example:
+      - heapdict

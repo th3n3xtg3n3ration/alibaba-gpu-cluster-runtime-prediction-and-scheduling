@@ -1,0 +1,21 @@
+{
+  "metrics": {
+    "mae": 4316.387613051581,
+    "rmse": 13830.743883125311,
+    "r2": 0.2744939828230534,
+    "mape": 16.84560012049392,
+    "mdae": 1508.097602925448,
+    "train_time": 17.371078968048096
+  },
+  "best_params": {
+    "bootstrap": true,
+    "ccp_alpha": 0.0,
+    "criterion": "squared_error",
+    "max_depth": 20,
+    "max_features": 0.7,
+    "max_samples": 0.8,
+    "min_samples_leaf": 1,
+    "min_samples_split": 2,
+    "n_estimators": 150
+  }
+}

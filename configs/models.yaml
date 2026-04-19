@@ -1,0 +1,128 @@
+# =====================================================================
+#  models.yaml
+#  Centralized configuration for all runtime prediction models,
+#  including base parameters and hyperparameter search spaces.
+# =====================================================================
+
+
+features:
+  target_column: "job_runtime"
+
+# =====================================================================
+#  MODEL DEFINITIONS
+# =====================================================================
+
+models:
+  lgbm:
+    model:
+      class: LGBMRegressor
+      objective: regression_l1
+      verbose: -1
+    hyperparameters:
+      n_estimators: 1000
+      learning_rate: 0.02
+      num_leaves: 63
+      max_depth: 7
+      subsample: 0.8
+      colsample_bytree: 0.5
+      min_child_samples: 20
+  xgb:
+    model:
+      class: XGBRegressor
+      objective: reg:squarederror
+      eval_metric: mae
+      tree_method: hist
+    hyperparameters:
+      n_estimators: 500
+      learning_rate: 0.05
+      max_depth: 8
+      subsample: 0.8
+      colsample_bytree: 0.5
+      min_child_weight: 1
+  rf:
+    model:
+      class: RandomForestRegressor
+      criterion: squared_error
+    hyperparameters:
+      n_estimators: 150
+      max_depth: 15
+      min_samples_split: 2
+      min_samples_leaf: 1
+      max_features: sqrt
+
+# =====================================================================
+#  TUNING CONFIGURATIONS
+# =====================================================================
+
+tuning:
+  common:
+    scoring: neg_mean_absolute_error
+    cv: 3
+    n_jobs: 1  # Note: If experiencing Segmention Faults on macOS, reduce to 1 or 2.
+    verbose: 2
+    random_state: 42
+    n_iter: 10
+
+  random_forest:
+    n_estimators: [100, 150]
+    max_depth: [10, 15]
+    min_samples_split: [2, 5]
+    min_samples_leaf: [1, 2]
+    max_features: ["sqrt", 0.7]
+    max_samples: [0.5, 0.8]
+    bootstrap: [true]
+    criterion: ["squared_error"]
+    ccp_alpha: [0.0]
+
+  xgboost:
+    n_estimators: [300, 500, 800]
+    learning_rate: [0.05]
+    max_depth: [6, 8, 10]
+    min_child_weight: [1, 5]
+    gamma: [0.0]
+    reg_alpha: [0.0]
+    reg_lambda: [0.1, 1.0]
+    subsample: [0.7, 0.8]
+    colsample_bytree: [0.3, 0.5]
+    colsample_bylevel: [0.5, 0.7]
+    max_delta_step: [0]
+
+  lightgbm:
+    n_estimators: [500, 1000, 1500]
+    learning_rate: [0.01, 0.02, 0.05]
+    num_leaves: [31, 63]
+    max_depth: [5, 7, 10]
+    subsample: [0.7, 0.8]
+    subsample_freq: [1]
+    colsample_bytree: [0.3, 0.5, 0.7]
+    min_child_samples: [20, 50]
+    min_split_gain: [0.0]
+    reg_alpha: [0.0, 1.0]
+    reg_lambda: [0.0, 1.0, 5.0]
+    max_bin: [255]
+
+  cnn:
+    num_filters: [128, 256]
+    kernel_size: [3, 5]
+    learning_rate: [0.001, 0.005]
+    batch_size: [256, 512, 1024]
+    dropout: [0.2, 0.3]
+    epochs: 20
+
+  lstm:
+    hidden_size: [128, 256]
+    num_layers: [2]
+    learning_rate: [0.001, 0.005]
+    batch_size: [256, 512, 1024]
+    dropout: [0.2, 0.3]
+    epochs: 20
+
+  cnn_lstm:
+    num_filters: [128, 256]
+    kernel_size: [3, 5]
+    lstm_hidden_size: [128, 256]
+    lstm_num_layers: [1, 2]
+    learning_rate: [0.001, 0.005]
+    batch_size: [256, 512, 1024]
+    dropout: [0.2, 0.3]
+    epochs: 20

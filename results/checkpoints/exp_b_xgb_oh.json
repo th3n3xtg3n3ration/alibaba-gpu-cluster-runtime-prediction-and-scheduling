@@ -1,0 +1,23 @@
+{
+  "metrics": {
+    "mae": 3389.2637353934983,
+    "rmse": 11375.186957410306,
+    "r2": 0.50924240791379,
+    "mape": 10.797955900149711,
+    "mdae": 1128.88720703125,
+    "train_time": 30.103754997253418
+  },
+  "best_params": {
+    "colsample_bylevel": 0.5,
+    "colsample_bytree": 0.5,
+    "gamma": 0.0,
+    "learning_rate": 0.075,
+    "max_delta_step": 0,
+    "max_depth": 15,
+    "min_child_weight": 1,
+    "n_estimators": 1000,
+    "reg_alpha": 0.0,
+    "reg_lambda": 0.1,
+    "subsample": 0.7
+  }
+}

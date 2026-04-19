@@ -1,0 +1,34 @@
+# =====================================================================
+#  paths.yaml
+#  Centralized configuration for data paths and output directories.
+# =====================================================================
+
+data:
+  raw_data_dir: "data/alibaba_cluster_trace/"
+
+  # Main dataset used for training and scheduling experiments.
+  # For the thesis, we use the 100K job sample WITHOUT built-in estimates.
+  main_sample_file: "pai_job_no_estimate_100K.csv"
+
+  # Optional baseline dataset that contains Alibaba's own duration estimates.
+  # This can be used later for comparison (e.g., "Alibaba Estimate vs ML models").
+  baseline_estimate_file: "pai_job_duration_estimate_100K.csv"
+
+  processed_data_dir: "data/processed/"
+  cache_dir: "data/cache/"
+
+  # Filename of the feature-engineered utilization dataset produced by notebook 00.
+  processed_full_file: "100k_job_with_utilization_full.csv"
+
+results:
+  figures_dir: "results/figures/"
+  tables_dir: "results/tables/"
+  models_dir: "results/models/"
+  logs_dir: "results/logs/"
+  checkpoints_dir: "results/checkpoints/"
+
+notebooks:
+  notebook_dir: "notebooks/"
+
+configs:
+  config_dir: "configs/"

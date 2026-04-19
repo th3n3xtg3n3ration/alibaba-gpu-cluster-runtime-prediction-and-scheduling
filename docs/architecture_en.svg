@@ -1,0 +1,133 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 650" style="background-color: #0F172A; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+  
+  <defs>
+    <!-- Figma style drop shadow -->
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#000000" flood-opacity="0.4"/>
+    </filter>
+    
+    <!-- Gradients -->
+    <linearGradient id="grad-blue" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3B82F6" />
+      <stop offset="100%" stop-color="#2563EB" />
+    </linearGradient>
+    <linearGradient id="grad-purple" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#8B5CF6" />
+      <stop offset="100%" stop-color="#6D28D9" />
+    </linearGradient>
+    <linearGradient id="grad-orange" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F59E0B" />
+      <stop offset="100%" stop-color="#D97706" />
+    </linearGradient>
+    <linearGradient id="grad-red" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#EF4444" />
+      <stop offset="100%" stop-color="#DC2626" />
+    </linearGradient>
+    <linearGradient id="grad-green" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10B981" />
+      <stop offset="100%" stop-color="#059669" />
+    </linearGradient>
+    
+    <!-- Curved glow lines -->
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#94A3B8" />
+    </marker>
+  </defs>
+
+  <!-- Title -->
+  <text x="600" y="50" fill="#F8FAFC" font-size="28" font-weight="800" text-anchor="middle" letter-spacing="1">
+    MULTI-NODE GPU CLUSTER SIMULATOR ARCHITECTURE
+  </text>
+  <text x="600" y="80" fill="#94A3B8" font-size="16" font-weight="400" text-anchor="middle">
+    Discrete-Event Array Orchestrated by Oracle ML/DL Predictor Models
+  </text>
+
+  <!-- Connection Lines (Paths) -->
+  <path d="M 250 340 C 300 340, 300 240, 350 240" fill="none" stroke="#94A3B8" stroke-width="3" stroke-dasharray="6,6" marker-end="url(#arrow)" />
+  <path d="M 550 240 C 600 240, 600 280, 650 280" fill="none" stroke="#94A3B8" stroke-width="3" marker-end="url(#arrow)" />
+  <path d="M 550 440 C 600 440, 600 400, 650 400" fill="none" stroke="#94A3B8" stroke-width="3" marker-end="url(#arrow)" />
+  
+  <path d="M 250 360 C 300 360, 300 440, 350 440" fill="none" stroke="#94A3B8" stroke-width="3" stroke-dasharray="6,6" marker-end="url(#arrow)" />
+  
+  <path d="M 800 280 L 880 230" fill="none" stroke="#94A3B8" stroke-width="4" marker-end="url(#arrow)" />
+  <path d="M 800 400 L 880 430" fill="none" stroke="#94A3B8" stroke-width="4" marker-end="url(#arrow)" />
+
+  <path d="M 980 260 L 980 500" fill="none" stroke="#94A3B8" stroke-width="2" marker-end="url(#arrow)" />
+  <path d="M 980 480 L 980 500" fill="none" stroke="#94A3B8" stroke-width="2" marker-end="url(#arrow)" />
+
+  <!-- Labels for Lines -->
+  <text x="280" y="270" fill="#CBD5E1" font-size="12" font-weight="600" transform="rotate(-15, 280, 270)">Submit Workload</text>
+  <text x="470" y="340" fill="#CBD5E1" font-size="12" font-weight="600" text-anchor="middle">Runtime Prediction</text>
+  <text x="830" y="240" fill="#CBD5E1" font-size="12" font-weight="600">Dispatch to HP</text>
+  <text x="830" y="425" fill="#CBD5E1" font-size="12" font-weight="600">Dispatch to T4</text>
+  <text x="990" y="525" fill="#CBD5E1" font-size="12" font-weight="600">JOB_COMPLETION</text>
+
+  <!-- 1. USER NODE -->
+  <g transform="translate(50, 300)">
+    <rect width="200" height="90" rx="16" fill="url(#grad-blue)" filter="url(#shadow)" />
+    <!-- User Icon -->
+    <path d="M100 25 C108.284 25 115 31.716 115 40 C115 48.284 108.284 55 100 55 C91.716 55 85 48.284 85 40 C85 31.716 91.716 25 100 25 Z M100 60 C116.569 60 130 68.954 130 80 L70 80 C70 68.954 83.431 60 100 60 Z" fill="#FFFFFF" opacity="0.9" />
+    <text x="100" y="50" fill="#FFFFFF" font-size="16" font-weight="700" text-anchor="middle" transform="translate(0, 15)">Researchers (Alibaba)</text>
+    <text x="100" y="70" fill="#DBEAFE" font-size="12" font-weight="500" text-anchor="middle" transform="translate(0, 15)">Bursty Workload Traffic</text>
+  </g>
+
+  <!-- 2. API GATEWAY NODE -->
+  <g transform="translate(350, 180)">
+    <rect width="200" height="90" rx="16" fill="url(#grad-purple)" filter="url(#shadow)" />
+    <text x="100" y="45" fill="#FFFFFF" font-size="16" font-weight="700" text-anchor="middle">Prediction & Routing</text>
+    <text x="100" y="65" fill="#EDE9FE" font-size="12" font-weight="500" text-anchor="middle">API Gateway / Load Balancer</text>
+    <text x="100" y="80" fill="#C4B5FD" font-size="10" font-weight="500" text-anchor="middle">(Nginx / REST API)</text>
+  </g>
+
+  <!-- 3. AI PREDICTOR NODE -->
+  <g transform="translate(350, 380)">
+        <rect width="210" height="130" rx="16" fill="url(#grad-orange)" filter="url(#shadow)" />
+    <text x="105" y="32" fill="#FFFFFF" font-size="16" font-weight="700" text-anchor="middle">AI Oracle Engine</text>
+    <text x="105" y="55" fill="#FEF3C7" font-size="12" font-weight="500" text-anchor="middle">1. Num Trees (RF, XGB)</text>
+    <text x="105" y="75" fill="#FEF3C7" font-size="12" font-weight="500" text-anchor="middle">2. Cat Trees (RF, XGB)</text>
+    <text x="105" y="95" fill="#FDE68A" font-size="12" font-weight="500" text-anchor="middle">3. Static DL (CNN, LSTM)</text>
+    <text x="105" y="115" fill="#FDE68A" font-size="12" font-weight="500" text-anchor="middle">4. Sequence DL (CNN, LSTM)</text>
+  </g>
+
+  <!-- 4. GLOBAL WAIT QUEUE -->
+  <g transform="translate(650, 260)">
+    <rect width="130" height="160" rx="16" fill="#1E293B" stroke="#38BDF8" stroke-width="3" filter="url(#shadow)" />
+    <text x="65" y="40" fill="#FFFFFF" font-size="16" font-weight="700" text-anchor="middle">Global Wait Queue</text>
+    <text x="65" y="60" fill="#94A3B8" font-size="12" font-weight="500" text-anchor="middle">SJF Prioritization</text>
+    
+    <!-- Queue item bars -->
+    <rect x="25" y="80" width="80" height="12" rx="4" fill="#3B82F6" opacity="0.9" />
+    <rect x="25" y="100" width="60" height="12" rx="4" fill="#EF4444" opacity="0.8" />
+    <rect x="25" y="120" width="40" height="12" rx="4" fill="#10B981" opacity="0.7" />
+  </g>
+
+  <!-- 5. HETEROGENEOUS CLUSTER - HP -->
+  <g transform="translate(860, 160)">
+    <rect width="240" height="100" rx="16" fill="url(#grad-red)" filter="url(#shadow)" />
+    <text x="120" y="45" fill="#FFFFFF" font-size="16" font-weight="700" text-anchor="middle">High-Performance Nodes</text>
+    <text x="120" y="65" fill="#FEE2E2" font-size="12" font-weight="500" text-anchor="middle">V100 / A100 Equivalent GPUs</text>
+    <!-- Server Rack Lines -->
+    <rect x="20" y="75" width="200" height="4" rx="2" fill="#FFFFFF" opacity="0.5" />
+    <rect x="20" y="85" width="200" height="4" rx="2" fill="#FFFFFF" opacity="0.5" />
+  </g>
+
+  <!-- 6. HETEROGENEOUS CLUSTER - MID -->
+  <g transform="translate(860, 380)">
+    <rect width="240" height="100" rx="16" fill="url(#grad-green)" filter="url(#shadow)" />
+    <text x="120" y="45" fill="#FFFFFF" font-size="16" font-weight="700" text-anchor="middle">Mid-Range Nodes</text>
+    <text x="120" y="65" fill="#D1FAE5" font-size="12" font-weight="500" text-anchor="middle">T4 / MISC Equivalent GPUs</text>
+    <!-- Server Rack Lines -->
+    <rect x="20" y="75" width="200" height="4" rx="2" fill="#FFFFFF" opacity="0.5" />
+    <rect x="20" y="85" width="200" height="4" rx="2" fill="#FFFFFF" opacity="0.5" />
+  </g>
+
+  <!-- 7. EVENT DATABASE -->
+  <g transform="translate(860, 520)">
+    <rect width="240" height="70" rx="16" fill="#334155" filter="url(#shadow)" />
+    <!-- Cylinder Top (Database) -->
+    <ellipse cx="120" cy="15" rx="30" ry="10" fill="#475569" />
+    <text x="120" y="40" fill="#FFFFFF" font-size="14" font-weight="700" text-anchor="middle">Event Database</text>
+    <text x="120" y="55" fill="#94A3B8" font-size="11" font-weight="500" text-anchor="middle">Simulation Event Logger</text>
+  </g>
+
+</svg>
