@@ -1,2 +1,0 @@
-num_jobs,mean_runtime_sec,median_runtime_sec,p95_runtime_sec,p99_runtime_sec,mean_gpu_demand,max_gpu_demand,time_span_hours
-39008,4579.249538556193,271.0,18188.850000000013,73598.91000000003,1.098928424938474,8,183.85583333333332
