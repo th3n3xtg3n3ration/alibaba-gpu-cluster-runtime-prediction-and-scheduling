@@ -1179,10 +1179,9 @@ def train_dl_model(model, train_loader, val_loader, criterion, optimizer, epochs
     """
     Trains a generic PyTorch model with Early Stopping and Learning Rate Scheduling.
     """
-    # Reproducibility seed — ensures consistent results across runs
+    # Reproducibility seed for weight initialization (consistent model init per trial)
     torch.manual_seed(42)
     np.random.seed(42)
-    random.seed(42)
 
     if device is None:
         device = get_default_device()
@@ -1205,6 +1204,7 @@ def train_dl_model(model, train_loader, val_loader, criterion, optimizer, epochs
             outputs = model(X_batch)
             loss = criterion(outputs.view(-1), y_batch.view(-1))
             loss.backward()
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
             optimizer.step()
             running_loss += loss.item() * X_batch.size(0)
             
@@ -1298,6 +1298,7 @@ def run_dl_randomsearch(model_name, search_space, train_dataset, val_dataset, in
     val_loader = DataLoader(val_dataset, batch_size=2048, shuffle=False)
     test_loader = DataLoader(test_dataset, batch_size=2048, shuffle=False)
     
+    random.seed(42)  # Seed once before loop — ensures different but reproducible trials
     for i in range(num_trials):
         # Only sample from values that are lists; others are treated as constant
         params = {}
