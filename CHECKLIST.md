@@ -4,7 +4,7 @@ This checklist serves as a professional verification guide to ensure the reposit
 
 ### 1. Data Integrity & Feature Engineering
 - [x] **Canonical Normalization:** Alibaba PAI traces are cleaned of zero-duration jobs and resource inconsistencies.
-- [x] **Temporal Scaling:** Hour-of-day and day-of-week features are cyclically encoded or properly categorized.
+- [x] **Temporal & Categorical Scaling:** Time properties are parsed as integers, and categorical user/GPU metadata is mapped via strict One-Hot Encoding.
 - [x] **Utilization Tracking:** Implementation of the O(N log N) sweep-line algorithm for tracking cluster-wide offered load at arrival time.
 - [x] **Data Documentation:** Clear instructions provided in `data/README.md` for full dataset acquisition.
 

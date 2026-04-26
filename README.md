@@ -115,8 +115,10 @@ Detailed empirical analysis indicates that Gradient Boosted Trees and Ensemble m
 | **Random Forest (One-Hot)** | 4,187.1 | 12,380.1 | 0.42 | High Robustness |
 | **LSTM (One-Hot)** | 5,836.3 | 15,056.7 | 0.06 | Deep Learning Best |
 
+> **Note on Deep Learning Results:** Consistent with recent literature (Shwartz-Ziv & Armon, 2022 — *"Tabular Data: Deep Learning is Not All You Need"*), DL architectures (CNN, LSTM, Hybrid) achieved R² ≈ 0.02–0.11 on non-sequential data, and **negative R²** on sequential sliding-window experiments (seq_len=10). This validated negative result confirms that GPU job runtimes lack the temporal autocorrelation required for sequence models to outperform tree-based ensembles on this tabular workload.
+
 ### Model Analytical Depth (Encoding & Error Topology)
-Advanced feature engineering—utilizing **One-Hot Encoding** for job metadata and cyclical time features—is critical for mapping non-linear GPU runtime correlations. Empirical analysis reveals that tree-based ensembles (XGBoost, LightGBM) maintain structural superiority over Deep Learning variants when navigating high-cardinality tabular spaces.
+Advanced feature engineering—utilizing **One-Hot Encoding** for high-cardinality job metadata (user/GPU type) alongside raw temporal features—is critical for mapping non-linear GPU runtime correlations. Empirical analysis reveals that tree-based ensembles (XGBoost, LightGBM) maintain structural superiority over Deep Learning variants when navigating these tabular spaces.
 
 ### Scheduling Optimization (Global Simulation)
 Predictive Shortest Job First (**SJF-Pred**) effectively mitigates the catastrophic **Head-of-Line (HoL) blocking** inherent in blind FIFO sequencing. By dynamically sorting queue execution based on modeled runtimes, wait times are significantly curtailed.

@@ -33,6 +33,7 @@ dependencies:
   - tqdm
   - pyarrow
   - joblib
+  - pytorch::pytorch
 
   # Optional but useful
   - pip
