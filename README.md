@@ -14,14 +14,14 @@ A comprehensive research framework for high-fidelity workload characterization, 
 
 ## 🔬 Research Overview
 
-This project optimizes resource fragmentation and queue latency in large-scale MLaaS platforms. By integrating high-accuracy predictive models into an event-driven simulation engine, we demonstrate that **SJF-Pred (Predictive Shortest Job First)** scheduling achieves an order-of-magnitude reduction in system-wide waiting times.
+This project addresses resource fragmentation and queue latency in large-scale Machine Learning as a Service (MLaaS) platforms. By integrating high-accuracy predictive models into an event-driven simulation engine, we demonstrate that **SJF-Pred (Predictive Shortest Job First)** scheduling achieves significant reductions in system-wide waiting times.
 
 ### Technical Contributions
 - **Workload Analytics:** Comprehensive characterization of heavy-tailed GPU job distributions and arrival burstiness.
-- **Offered Load Engineering:** Efficient **O(N log N) sweep-line algorithm** for real-time cluster state snapshots.
-- **Multi-Paradigm Predictive Suite:** Comparative evaluation of GBDT (**XGBoost**, **LightGBM**) and Deep Learning (**1D-CNN**, **LSTM**, **Hybrid**) architectures with **One-Hot Categorical Encoding**.
-- **Heterogeneous Event-Driven Simulation:** Robust framework supporting multi-resource constraints (GPU/CPU/Mem) and diverse node topologies.
-- **Scientific Reproducibility:** 100% modular Pathlib-based architecture, NumPy-style documentation, and an automated verification suite.
+- **Offered Load Engineering:** Efficient **O(N log N) sweep-line algorithm** for generating real-time cluster state snapshots.
+- **Multi-Paradigm Predictive Suite:** Comparative evaluation of GBDT (**XGBoost**, **LightGBM**) and Deep Learning (**1D-CNN**, **LSTM**, **Hybrid**) architectures leveraging **One-Hot Categorical Encoding**.
+- **Heterogeneous Event-Driven Simulation:** A robust framework supporting multi-resource constraints (GPU/CPU/Memory) across diverse node topologies.
+- **Scientific Reproducibility:** A 100% modular, Pathlib-based architecture with NumPy-style documentation and an automated verification suite.
 
 ---
 
@@ -43,8 +43,7 @@ This project optimizes resource fragmentation and queue latency in large-scale M
 │   ├── models/             # ML/DL architecture implementations
 │   ├── simulation/         # Discrete-event scheduling logic
 │   └── *.py                # Common utilities (Feature Engineering, Loading)
-├── tests/                  # Automated Unit Test Suite (100% Pass Rate)
-└── _archive/               # Protected legacy and experimental residue
+└── tests/                  # Automated Unit Test Suite (100% Pass Rate)
 ```
 
 ---
@@ -55,19 +54,21 @@ The experimental workflow is organized into six standardized phases, featuring p
 
 | Phase | Module | Research Objective |
 |---|---|---|
-| **00** | [Prepare Utilization Data](notebooks/00_prepare_utilization_data.ipynb) | Canonical normalization and sweep-line utilization tracking. |
-| **01** | [Data Overview](notebooks/01_data_overview.ipynb) | Initial statistical inspection and metadata validation. |
-| **02** | [Workload Characterization](notebooks/02_workload_analysis.ipynb) | Arrival heatmaps and heavy-tail distribution analysis. |
-| **03** | [Feature Engineering](notebooks/03_feature_engineering.ipynb) | Cyclical timestamps, **One-Hot Encoding**, and resource offered-load engineering. |
-| **04** | [Predictive Modeling](notebooks/04_runtime_prediction_models.ipynb) | Multi-model benchmarking, hyperparameter tuning, and error topology analysis. |
-| **05** | [Scheduling Optimization](notebooks/05_scheduler_evaluation.ipynb) | Discrete-event heterogeneous policy evaluation and JCT comparative analysis. |
+| **00** | [Data Preparation](notebooks/en/00_data_preparation.ipynb) | Canonical normalization and sweep-line utilization tracking. |
+| **01** | [Data Overview](notebooks/en/01_data_overview.ipynb) | Initial statistical inspection and metadata validation. |
+| **02** | [Workload Characterization](notebooks/en/02_workload_analysis.ipynb) | Arrival heatmaps and heavy-tail distribution analysis. |
+| **03** | [Feature Engineering](notebooks/en/03_feature_engineering.ipynb) | Cyclical timestamps, **One-Hot Encoding**, and resource offered-load engineering. |
+| **04** | [Predictive Modeling](notebooks/en/04_runtime_prediction_models.ipynb) | Multi-model benchmarking, hyperparameter tuning, and error topology analysis. |
+| **05** | [Scheduling Optimization](notebooks/en/05_scheduler_evaluation.ipynb) | Discrete-event heterogeneous policy evaluation and JCT comparative analysis. |
+
+*(Turkish versions are available under `notebooks/tr/`)*
 
 ---
 
 ## 🔧 Installation & Reproducibility
 
 ### Environment Configuration
-The project is built on a standardized scientific stack. Install via **Conda**:
+The project is built on a standardized scientific Python stack. Install the environment via **Conda**:
 
 ```bash
 conda env create -f environment.yaml
@@ -85,7 +86,7 @@ Detailed instructions for acquiring and processing the **Alibaba PAI GPU Trace**
 Execute the full research pipeline (training + figure generation) or run the verification suite:
 
 ```bash
-# Execute full experimental pipeline
+# Execute the full experimental pipeline
 bash scripts/run_all_experiments.sh
 
 # Execute automated unit tests
@@ -97,16 +98,15 @@ To verify system integrity, run the standard test suite:
 ```bash
 python -m unittest discover tests
 ```
-- **Configuration:** YAML path and model parameter loading.
 
 ---
 
 ## 📊 Experimental Results
 
-Benchmarked against the Alibaba PAI GPU workload trace, this unified pipeline demonstrates the performance advantages of machine learning-augmented dispatching over standard heuristics.
+Benchmarked against the Alibaba PAI GPU workload trace, this unified pipeline demonstrates the performance advantages of machine learning-augmented dispatching over standard queueing heuristics.
 
 ### Model Predictive Performance
-Detailed empirical analysis indicates that Gradient Boosted Trees and Ensemble methods provide improved runtime estimation accuracy compared to traditional heuristics:
+Detailed empirical analysis indicates that Gradient Boosted Trees and Ensemble methods provide improved runtime estimation accuracy compared to sequential Deep Learning architectures on tabular data:
 
 | Model Architecture | MAE (s) | RMSE (s) | R² Score | Robustness Indicator |
 |:-------------------|:--------|:---------|:---------|:---------------------|
@@ -116,10 +116,10 @@ Detailed empirical analysis indicates that Gradient Boosted Trees and Ensemble m
 | **LSTM (One-Hot)** | 5,836.3 | 15,056.7 | 0.06 | Deep Learning Best |
 
 ### Model Analytical Depth (Encoding & Error Topology)
-Advanced feature engineering—utilizing **One-Hot Encoding** for job metadata and cyclical time features—is critical for mapping non-linear GPU correlations. Empirical analysis reveals that tree-based ensembles (XGBoost, LightGBM) maintain structural superiority over unoptimized Deep Learning variants in high-cardinality tabular spaces.
+Advanced feature engineering—utilizing **One-Hot Encoding** for job metadata and cyclical time features—is critical for mapping non-linear GPU runtime correlations. Empirical analysis reveals that tree-based ensembles (XGBoost, LightGBM) maintain structural superiority over Deep Learning variants when navigating high-cardinality tabular spaces.
 
 ### Scheduling Optimization (Global Simulation)
-Predictive Shortest Job First (**SJF-Pred**) prevents the catastrophic **Head-of-Line (HoL) cluster collapse** inherent in blind FIFO sequencing.
+Predictive Shortest Job First (**SJF-Pred**) effectively mitigates the catastrophic **Head-of-Line (HoL) blocking** inherent in blind FIFO sequencing. By dynamically sorting queue execution based on modeled runtimes, wait times are significantly curtailed.
 
 | Scheduling Policy | Mean Wait Time (s) | Wait Time Speedup | Slowdown Speedup |
 |:------------------|:-------------------|:------------------|:-----------------|
@@ -131,16 +131,16 @@ Predictive Shortest Job First (**SJF-Pred**) prevents the catastrophic **Head-of
 
 <div align="center">
   <h3>📊 Research Conclusion</h3>
-  <p><i>"The integration of precise predictive modeling, specifically XGBoost (One-Hot), as a scheduling primitive enables a significant optimization in resource utilization. This approach achieves a <b>2.25x speedup</b> in cluster wait times compared to traditional FIFO scheduling, proving highly effective even within the complex constraints of heterogeneous multi-node cluster environments."</i></p>
+  <p><i>"The integration of precise predictive modeling, specifically XGBoost (One-Hot), as a scheduling primitive enables a profound optimization in resource utilization. This approach achieves a <b>2.25x speedup</b> in cluster wait times compared to traditional FIFO scheduling, proving highly effective even within the complex constraints of heterogeneous multi-node environments."</i></p>
 </div>
 
 ### System Efficiency & Scalability
-The simulation engine processes over **100,000 discrete job events in under 60 seconds**, enabling rapid data-driven policy iteration and systemic verification of JCT bound minimization.
+The custom simulation engine processes over **100,000 discrete job events in under 60 seconds**. This highly optimized throughput facilitates rapid data-driven policy iterations and the systemic verification of Job Completion Time (JCT) minimization.
 
 ---
 
 ## 📜 License
-This project is licensed under the MIT License - see the `LICENSE` file for details.
+This project is licensed under the MIT License. See the `LICENSE` file for details.
 
 ## 🤝 Contact & Contributions
 Developed by **Hasan Uğur Çelebi**. Contributions and academic collaborations are welcome.
