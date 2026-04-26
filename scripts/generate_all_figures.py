@@ -482,7 +482,7 @@ def plot_nb04(models: dict, X_num: pd.DataFrame, y_num: pd.Series, out_dir: Path
     _save(fig, "nb04_feature_importance.png", out_dir)
 
     # -- Figure 12 -- Predicted vs Actual scatter
-    y_arr = y_num.values
+    y_arr = np.asarray(y_num)
     rng = np.random.default_rng(42)
     sample_idx = rng.choice(len(y_arr), size=min(3000, len(y_arr)), replace=False)
     X_samp = X_num.iloc[sample_idx]
