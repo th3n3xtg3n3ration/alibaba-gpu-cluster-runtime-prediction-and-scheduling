@@ -110,10 +110,10 @@ Detailed empirical analysis indicates that Gradient Boosted Trees and Ensemble m
 
 | Model Architecture | MAE (s) | RMSE (s) | R² Score | Robustness Indicator |
 |:-------------------|:--------|:---------|:---------|:---------------------|
-| **XGB (One-Hot)**  | **3,000.1** | **11,173.6** | **0.53** | **Optimal Performer** |
-| **LGB (Native)**   | 4,069.7 | 12,036.3 | 0.45    | High Performance |
-| **RF (One-Hot)**   | 4,187.1 | 12,380.1 | 0.42    | High Robustness |
-| **CNN (One-Hot)**  | 4,788.0 | 13,573.3 | 0.30 | DL Baseline |
+| **XGBoost (One-Hot)** | **3,389.3** | **11,375.2** | **0.51** | **Optimal Performer** |
+| **LightGBM (Native)** | 4,105.8 | 12,147.2 | 0.44 | High Performance |
+| **Random Forest (One-Hot)** | 4,187.1 | 12,380.1 | 0.42 | High Robustness |
+| **LSTM (One-Hot)** | 5,836.3 | 15,056.7 | 0.06 | Deep Learning Best |
 
 ### Model Analytical Depth (Encoding & Error Topology)
 Advanced feature engineering—utilizing **One-Hot Encoding** for job metadata and cyclical time features—is critical for mapping non-linear GPU correlations. Empirical analysis reveals that tree-based ensembles (XGBoost, LightGBM) maintain structural superiority over unoptimized Deep Learning variants in high-cardinality tabular spaces.
@@ -121,16 +121,17 @@ Advanced feature engineering—utilizing **One-Hot Encoding** for job metadata a
 ### Scheduling Optimization (Global Simulation)
 Predictive Shortest Job First (**SJF-Pred**) prevents the catastrophic **Head-of-Line (HoL) cluster collapse** inherent in blind FIFO sequencing.
 
-| Scheduling Policy | Avg. Wait Time (s) | JCT (Avg) | **JCT Improvement %** |
-|:------------------|:------------------|:----------|:---------------------|
-| **SJF-Oracle**      | 50,988 | 56,196 | **90.16% (Theoretical Limit)** |
-| **SJF-XGBoost**     | 75,662 | 80,870 | **85.84% (Observed Performance)** |
-| **SJF-RandomForest**| 111,764 | 116,972| **79.52%** |
-| **FIFO (Baseline)** | 566,002 | 571,211 | *0.00% (Systems Failure)* |
+| Scheduling Policy | Mean Wait Time (s) | Wait Time Speedup | Slowdown Speedup |
+|:------------------|:-------------------|:------------------|:-----------------|
+| **SJF-Oracle**      | 121,128 | **5.91x (Theoretical Limit)** | 430.1x |
+| **SJF-PRED-XGB**    | 318,257 | **2.25x (Observed Best)** | 4.13x |
+| **SJF-PRED-LGBM**   | 329,124 | **2.17x** | 3.84x |
+| **SJF-PRED-RF**     | 330,870 | **2.16x** | 4.03x |
+| **FIFO (Baseline)** | 715,611 | *1.00x (Systems Baseline)* | 1.00x |
 
 <div align="center">
   <h3>📊 Research Conclusion</h3>
-  <p><i>"The integration of precise predictive modeling as a scheduling primitive enables a significant optimization in resource utilization, reducing cluster wait times by <b>~85.8%</b> without requiring additional hardware capacity."</i></p>
+  <p><i>"The integration of precise predictive modeling, specifically XGBoost (One-Hot), as a scheduling primitive enables a significant optimization in resource utilization. This approach achieves a <b>2.25x speedup</b> in cluster wait times compared to traditional FIFO scheduling, proving highly effective even within the complex constraints of heterogeneous multi-node cluster environments."</i></p>
 </div>
 
 ### System Efficiency & Scalability
