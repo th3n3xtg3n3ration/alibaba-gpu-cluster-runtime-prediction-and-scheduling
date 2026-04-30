@@ -77,7 +77,7 @@
 ### 3.2 Feature Engineering Pipeline  
 - **Static Features:** Job/Instance counts, GPU/CPU/Memory requests.  
 - **Temporal Features:** Time properties (hour, day) are extracted as raw integers. Categorical metadata uses One-Hot Encoding.
-- ** utilization Features (The Sweep-Line):**  
+- **Utilization Features (The Sweep-Line):**  
   - Background CPU/GPU load at arrival.  
   - Concurrently active job counts.
 
