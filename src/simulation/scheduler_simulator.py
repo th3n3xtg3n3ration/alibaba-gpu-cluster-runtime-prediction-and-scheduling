@@ -49,6 +49,7 @@ __all__ = [
     "FIFOScheduler",
     "SJFScheduler",
     "SJFPredScheduler",
+    "SRFScheduler",
     "ClusterSimulator",
 ]
 
@@ -117,6 +118,33 @@ class SJFPredScheduler(SchedulerBase):
     def select_job(self, queue: pd.DataFrame) -> pd.Series:
         idx = queue["predicted_runtime"].idxmin()
         return queue.loc[idx]
+
+
+# ============================================================
+# Greedy Resource Heuristic (SRF)
+# ============================================================
+
+
+class SRFScheduler(SchedulerBase):
+    """
+    Smallest Resource First (SRF) — selects the job with the smallest resource demand.
+    
+    Acts as a greedy heuristic baseline. It mimics a simple rule-based approach 
+    that ignores runtime and just clears small jobs (based on GPU demand) first.
+    """
+
+    def select_job(self, queue: pd.DataFrame) -> pd.Series:
+        # Check which column name is used for GPU demand
+        gpu_col = "num_gpu" if "num_gpu" in queue.columns else "gpu_demand"
+        
+        if gpu_col in queue.columns:
+            # idxmin() returns the first occurrence of the minimum value,
+            # which inherently breaks ties in FIFO order (arrival time)
+            idx = queue[gpu_col].idxmin()
+            return queue.loc[idx]
+            
+        # Fallback to FIFO if no resource columns exist
+        return queue.iloc[0]
 
 
 # ============================================================
