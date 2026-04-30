@@ -3,8 +3,8 @@
 **Project Title:** Multi-Paradigm Runtime Prediction and Heterogeneous Scheduling Optimization in Large-Scale GPU Clusters  
 **Repository:** `alibaba-gpu-runtime-prediction-and-scheduling`  
 **Author:** Ugur Celebi  
-**Year:** 2025
-**Universıty:** Yeditepe University
+**Year:** 2025  
+**University:** Yeditepe University  
 
 ---
 
