@@ -4,7 +4,7 @@
 **Repository:** `alibaba-gpu-runtime-prediction-and-scheduling`  
 **Author:** Ugur Celebi  
 **Year:** 2025
-**Universıty:** Yeditepe University
+**University:** Yeditepe University
 
 ---
 
