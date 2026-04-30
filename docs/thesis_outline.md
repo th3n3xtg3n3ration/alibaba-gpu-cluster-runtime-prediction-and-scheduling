@@ -3,7 +3,8 @@
 **Project Title:** Multi-Paradigm Runtime Prediction and Heterogeneous Scheduling Optimization in Large-Scale GPU Clusters  
 **Repository:** `alibaba-gpu-runtime-prediction-and-scheduling`  
 **Author:** Ugur Celebi  
-**Year:** 2025  
+**Year:** 2025
+**Universıty:** Yeditepe University
 
 ---
 
@@ -19,42 +20,51 @@
 
 ## 1. Introduction
 
-### 1.1 Background and Context  
-- Large-scale distributed deep learning workloads and the explosion of GPU demand.  
-- Managed MLaaS Platforms: Alibaba PAI, AWS SageMaker, and Google Vertex.  
-- Multi-tenant GPU clusters: The necessity of shared infrastructure.
+### 1.1 Problem Definition and Context (General)
+- How to utilize GPU and CPU resources most efficiently in large-scale environments?
+- The critical importance of hardware efficiency in massive Cloud Computing platforms (e.g., Alibaba).
+- The necessity of shared infrastructure in multi-tenant GPU clusters.
 
-### 1.2 Motivation: The Efficiency Gap  
-- Inaccuracy of user-provided runtime estimates and its impact on SLAs.  
-- Resource fragmentation and the hidden costs of "Black Box" job durations.  
-- Initial observations from the Alibaba GPU trace: Heavy-tails and burstiness.
+### 1.2 Causes of the Problem (Narrowing Down)
+- The inherent chaos and unpredictability of cloud workloads.
+- Fluctuations in Alibaba trace jobs based on days of the week and hours of the day.
+- Bursty traffic patterns and how heavy-tailed (long-running) jobs lead to severe resource fragmentation and system bottlenecks.
 
-### 1.3 Problem Statement & Objectives  
-- **Objective 1:** Predictive Modeling — Can we outperform heuristics using multi-paradigm (Tree vs. DL) models?  
-- **Objective 2:** Utilization Engineering — How does cluster-wide offered load influence prediction accuracy?  
-- **Objective 3:** Simulation — Building a heterogeneous, multi-node event-driven framework for policy evaluation.
+### 1.3 Search for a Solution and Scheduling (Specific)
+- How is scheduling currently performed in existing systems? (e.g., FIFO, simple heuristic rules).
+- Can we develop smarter, AI-driven, and more efficient scheduling solutions?
+- Is it possible to establish a successful scheduling mechanism by utilizing historical workload data? (Answer: Yes).
 
-### 1.4 Global Contributions  
-- Implementation of a high-performance (O(N log N)) sweep-line utilization tracker.  
-- Comparative analysis of Gradient Boosting (XGB/LGBM) vs. Sequence Models (CNN/LSTM).  
-- Development of a robust Heterogeneous Simulator with multi-resource constraints (CPU/GPU/Mem).  
-- A fully reproducible, standardized "Elite" research repository.
+### 1.4 Motivation, Definition, and Scope
+- Initiating the development of a "Predictive Scheduling" solution using the Alibaba dataset.
+- Defining the scope through time-series analysis, data cleaning, and the implementation of a Multi-Node Event-Driven Simulator.
+
+### 1.5 Research Questions
+1. Can Machine Learning (ML) and Deep Learning (DL) algorithms be successfully utilized for job scheduling problems in cloud computing clusters?
+2. Which artificial intelligence methods are more suitable for predicting high-variance and chaotic workload runtimes in real-world (Alibaba) data?
+3. To what extent do heuristic approaches (e.g., Smallest Resource First) that only consider hardware demand fall short against machine learning-supported (SJF-Pred) policies?
+4. What is the performance disparity between tree-based models (XGBoost/LightGBM) and time-series-focused deep learning models (LSTM) when handling categorical (tabular) data in this domain?
+
+### 1.6 Aims and Objectives
+1. To clean and preprocess a massive 100,000-row Alibaba dataset to extract contextual cluster utilization features.
+2. To develop multi-paradigm (Tree vs. DL) predictive models capable of estimating job runtimes accurately.
+3. To make the models' decision-making processes explainable (Explainable AI) using Feature Importance (MDA/MDI) methods.
+4. To code and deploy an advanced Multi-Node Simulator to test the real-world impact of these predictions.
+5. To empirically prove how much ML-assisted scheduling (SJF-XGBoost) reduces waiting times compared to simple rule-based (Heuristic/FIFO) methods.
 
 ---
 
 ## 2. Related Work
 
-### 2.1 Cluster Scheduling Theory  
-- Classic algorithms: FIFO, SJF, and Priority-based dispatching.  
-- Backfilling and its critical dependence on runtime limits.
+### 2.1 Cluster Scheduling Theory (Classical Approaches)
+- Traditional algorithms: FIFO, SJF, and simple rule-based (Heuristic / SRF) mechanisms.
+- Backfilling and its critical limitations.
 
-### 2.2 The "MLaaS in the Wild" Milestone (NSDI ’22)  
-- Detailed review of the original Alibaba PAI workload analysis.  
-- Limitations of simple User/Group/GPU heuristics in heterogeneous environments.
-
-### 2.3 ML-Based Systems Optimization  
-- Tabular modeling: The continued dominance of XGBoost/LightGBM.  
-- Neural approaches: Using 1D-CNNs and LSTMs for system telemetry.
+### 2.2 Machine Learning (ML) and Deep Learning (DL) for Scheduling
+- Extensive literature review of ML/DL applications in cluster scheduling.
+- Tabular data modeling: The dominance of Gradient Boosting (XGBoost and LightGBM).
+- Time Series and System Telemetry: The role and limitations of LSTM and 1D-CNNs in scheduling literature.
+- MLaaS datasets (Alibaba PAI NSDI '22 paper and related research).
 
 ---
 
