@@ -123,6 +123,14 @@ Advanced feature engineering—utilizing **One-Hot Encoding** for high-cardinali
 ### Scheduling Optimization (Global Simulation)
 Predictive Shortest Job First (**SJF-Pred**) effectively mitigates the catastrophic **Head-of-Line (HoL) blocking** inherent in blind FIFO sequencing. Furthermore, compared to simple resource-greedy heuristics like **Shortest Resource First (SRF)**—which only prioritize minimal CPU/GPU demands without knowing job durations—ML-powered SJF accurately predicts true execution times. By dynamically sorting queue execution based on these modeled runtimes, wait times are significantly curtailed across the cluster.
 
+**Evaluated Policies:**
+- **FIFO:** Schedules jobs by arrival time. Ignores both resource demands and job runtimes.
+- **SRF:** Schedules jobs that ask for the fewest GPUs/CPUs. Ignores job runtimes.
+- **SJF-Pred:** Schedules jobs by their predicted runtimes using ML models.
+- **SJF-Oracle:** Theoretical limit using perfect, 100% accurate runtimes.
+
+*The table below evaluates these policies based on **Mean Wait Time** (average queue delay in seconds), **Wait Time Speedup** (relative improvement against the FIFO baseline), and **Slowdown Speedup** (improvement in the ratio of wait time to actual execution time).*
+
 | Scheduling Policy | Mean Wait Time (s) | Wait Time Speedup | Slowdown Speedup |
 |:------------------|:-------------------|:------------------|:-----------------|
 | **SJF-Oracle**      | 121,128 | **5.91x (Theoretical Limit)** | 430.1x |
