@@ -20,7 +20,7 @@ This project addresses resource fragmentation and queue latency in large-scale M
 - **Workload Analytics:** Comprehensive characterization of heavy-tailed GPU job distributions and arrival burstiness.
 - **Offered Load Engineering:** Efficient **O(N log N) sweep-line algorithm** for generating real-time cluster state snapshots.
 - **Multi-Paradigm Predictive Suite:** Comparative evaluation of GBDT (**XGBoost**, **LightGBM**) and Deep Learning (**1D-CNN**, **LSTM**, **Hybrid**) architectures leveraging **One-Hot Categorical Encoding**.
-- **Heterogeneous Event-Driven Simulation:** A robust framework supporting multi-resource constraints (GPU/CPU/Memory) across diverse node topologies.
+- **Heterogeneous Event-Driven Simulation:** A robust framework supporting multi-resource constraints across diverse node topologies, directly benchmarking Machine Learning-based **SJF** scheduling against strict heuristic baselines (**FIFO** and **Shortest Resource First - SRF**).
 - **Scientific Reproducibility:** A 100% modular, Pathlib-based architecture with NumPy-style documentation and an automated verification suite.
 
 ---
@@ -121,7 +121,7 @@ Detailed empirical analysis indicates that Gradient Boosted Trees and Ensemble m
 Advanced feature engineering—utilizing **One-Hot Encoding** for high-cardinality job metadata (user/GPU type) alongside raw temporal features—is critical for mapping non-linear GPU runtime correlations. Empirical analysis reveals that tree-based ensembles (XGBoost, LightGBM) maintain structural superiority over Deep Learning variants when navigating these tabular spaces.
 
 ### Scheduling Optimization (Global Simulation)
-Predictive Shortest Job First (**SJF-Pred**) effectively mitigates the catastrophic **Head-of-Line (HoL) blocking** inherent in blind FIFO sequencing. By dynamically sorting queue execution based on modeled runtimes, wait times are significantly curtailed.
+Predictive Shortest Job First (**SJF-Pred**) effectively mitigates the catastrophic **Head-of-Line (HoL) blocking** inherent in blind FIFO sequencing. Furthermore, compared to simple resource-greedy heuristics like **Shortest Resource First (SRF)**—which only prioritize minimal CPU/GPU demands without knowing job durations—ML-powered SJF accurately predicts true execution times. By dynamically sorting queue execution based on these modeled runtimes, wait times are significantly curtailed across the cluster.
 
 | Scheduling Policy | Mean Wait Time (s) | Wait Time Speedup | Slowdown Speedup |
 |:------------------|:-------------------|:------------------|:-----------------|
@@ -129,6 +129,7 @@ Predictive Shortest Job First (**SJF-Pred**) effectively mitigates the catastrop
 | **SJF-PRED-XGB**    | 318,257 | **2.25x (Observed Best)** | 4.13x |
 | **SJF-PRED-LGBM**   | 329,124 | **2.17x** | 3.84x |
 | **SJF-PRED-RF**     | 330,870 | **2.16x** | 4.03x |
+| **SRF (Heuristic)** | 580,240 | *1.23x (Resource Baseline)* | 1.04x |
 | **FIFO (Baseline)** | 715,611 | *1.00x (Systems Baseline)* | 1.00x |
 
 <div align="center">
