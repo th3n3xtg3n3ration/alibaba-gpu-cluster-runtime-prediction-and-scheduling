@@ -134,9 +134,9 @@ Predictive Shortest Job First (**SJF-Pred**) effectively mitigates the catastrop
 | Scheduling Policy | Mean Wait Time (s) | Wait Time Speedup | Slowdown Speedup |
 |:------------------|:-------------------|:------------------|:-----------------|
 | **SJF-Oracle**      | 121,128 | **5.91x (Theoretical Limit)** | 430.1x |
-| **SJF-PRED-XGB**    | 318,257 | **2.25x (Observed Best)** | 4.13x |
-| **SJF-PRED-LGBM**   | 329,124 | **2.17x** | 3.84x |
-| **SJF-PRED-RF**     | 330,870 | **2.16x** | 4.03x |
+| **SJF-Pred-XGB**    | 318,257 | **2.25x (Observed Best)** | 4.13x |
+| **SJF-Pred-LGBM**   | 329,124 | **2.17x** | 3.84x |
+| **SJF-Pred-RF**     | 330,870 | **2.16x** | 4.03x |
 | **SRF (Heuristic)** | 580,240 | *1.23x (Resource Baseline)* | 1.04x |
 | **FIFO (Baseline)** | 715,611 | *1.00x (Systems Baseline)* | 1.00x |
 
