@@ -39,7 +39,13 @@ class TestTuning(unittest.TestCase):
                 checkpoint_path = save_checkpoint(
                     "exp_b_xgb_oh",
                     {
-                        "metrics": {"mae": np.float64(1.5)},
+                        "metrics": {
+                            "mae": np.float64(1.5),
+                            "rmse": np.float64(2.5),
+                            "r2": np.float64(0.5),
+                            "mape": np.float64(0.1),
+                            "mdae": np.float64(1.0),
+                        },
                         "best_params": {"max_depth": np.int64(4)},
                         "train_size": 6,
                         "test_size": 2,
@@ -56,6 +62,10 @@ class TestTuning(unittest.TestCase):
             self.assertEqual(payload["status"], "complete")
             self.assertIn("timestamp", payload)
             self.assertEqual(payload["best_params"]["max_depth"], 4)
+            self.assertEqual(
+                sorted(payload["metrics"].keys()),
+                ["mae", "mape", "mdae", "r2", "rmse"],
+            )
 
 
 if __name__ == "__main__":

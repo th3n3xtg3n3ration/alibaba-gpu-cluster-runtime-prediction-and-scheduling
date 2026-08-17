@@ -148,6 +148,11 @@ def chronological_train_validation_split(
 def _parse_checkpoint_name(experiment_name: str) -> Tuple[str, str]:
     """Split a checkpoint name into experiment tag and model name."""
     experiment_parts = experiment_name.split("_")
+    if len(experiment_parts) < 3 or experiment_parts[0] != "exp":
+        raise ValueError(
+            "experiment_name must follow the 'exp_<tag>_<model>' pattern, "
+            f"got {experiment_name!r}."
+        )
     experiment_key = "_".join(experiment_parts[:2]) if len(experiment_parts) >= 2 else experiment_name
     model_name = "_".join(experiment_parts[2:]) if len(experiment_parts) > 2 else ""
     return experiment_key, model_name
