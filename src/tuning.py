@@ -14,7 +14,6 @@ Key Components:
   - finalize_and_evaluate_dl: Final refit and evaluation for the best DL architecture.
 """
 from __future__ import annotations
-import inspect
 from datetime import datetime, timezone
 import os
 import platform
@@ -142,48 +141,17 @@ def chronological_train_validation_split(
     return X_train, X_val, y_train, y_val
 
 
-def _infer_checkpoint_sizes(
-    experiment_name: str,
-    caller_locals: Dict[str, Any],
-) -> Tuple[Optional[int], Optional[int]]:
-    """Infer train/test sizes from notebook-local variables for checkpoint metadata."""
-    experiment_key = experiment_name.rsplit("_", maxsplit=1)[0]
-
-    size_var_pairs = {
-        "exp_a": ("y_train", "y_test"),
-        "exp_b_rf_oh": ("y_train_oh", "y_test_oh"),
-        "exp_b_xgb_oh": ("y_train_oh", "y_test_oh"),
-        "exp_b_lgbm_oh": ("y_train_oh", "y_test_oh"),
-        "exp_b_lgbm_nat": ("y_train_nat", "y_test_nat"),
-    }
-    if experiment_name in size_var_pairs:
-        train_var, test_var = size_var_pairs[experiment_name]
-        train_values = caller_locals.get(train_var)
-        test_values = caller_locals.get(test_var)
-        if train_values is not None and test_values is not None:
-            return len(train_values), len(test_values)
-
-    dataset_var_pairs = {
-        "exp_c": ("train_dataset_num", "val_dataset_num", "test_dataset_num"),
-        "exp_d": ("train_dataset_cat", "val_dataset_cat", "test_dataset_cat"),
-        "exp_e": ("train_dataset_num_seq", "val_dataset_num_seq", "test_dataset_num_seq"),
-        "exp_f": ("train_dataset_cat_seq", "val_dataset_cat_seq", "test_dataset_cat_seq"),
-    }
-    if experiment_key in dataset_var_pairs:
-        train_var, val_var, test_var = dataset_var_pairs[experiment_key]
-        train_dataset = caller_locals.get(train_var)
-        val_dataset = caller_locals.get(val_var)
-        test_dataset = caller_locals.get(test_var)
-        if train_dataset is not None and val_dataset is not None and test_dataset is not None:
-            return len(train_dataset) + len(val_dataset), len(test_dataset)
-
-    return None, None
+def _parse_checkpoint_name(experiment_name: str) -> Tuple[str, str]:
+    """Split a checkpoint name into experiment tag and model name."""
+    experiment_parts = experiment_name.split("_")
+    experiment_key = "_".join(experiment_parts[:2]) if len(experiment_parts) >= 2 else experiment_name
+    model_name = "_".join(experiment_parts[2:]) if len(experiment_parts) > 2 else experiment_name
+    return experiment_key, model_name
 
 
 def _build_checkpoint_payload(
     experiment_name: str,
     data: Dict[str, Any],
-    caller_locals: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """Normalize checkpoint payloads and backfill required metadata fields."""
     clean = {}
@@ -196,14 +164,7 @@ def _build_checkpoint_payload(
         else:
             clean[k] = v
 
-    experiment_parts = experiment_name.split("_")
-    experiment_key = "_".join(experiment_parts[:2]) if len(experiment_parts) >= 2 else experiment_name
-    model_name = "_".join(experiment_parts[2:]) if len(experiment_parts) > 2 else experiment_name
-
-    if caller_locals is None:
-        caller_locals = {}
-
-    inferred_train_size, inferred_test_size = _infer_checkpoint_sizes(experiment_name, caller_locals)
+    experiment_key, model_name = _parse_checkpoint_name(experiment_name)
     feature_mode = clean.get("feature_mode")
     if feature_mode is None:
         if experiment_name == "exp_b_lgbm_nat":
@@ -214,8 +175,8 @@ def _build_checkpoint_payload(
     clean.setdefault("experiment", experiment_key)
     clean.setdefault("model", model_name)
     clean.setdefault("feature_mode", feature_mode)
-    clean.setdefault("train_size", inferred_train_size)
-    clean.setdefault("test_size", inferred_test_size)
+    clean.setdefault("train_size", None)
+    clean.setdefault("test_size", None)
     clean.setdefault("timestamp", datetime.now(timezone.utc).isoformat())
     clean.setdefault("status", "complete")
 
@@ -241,10 +202,7 @@ def save_checkpoint(experiment_name: str, data: Dict[str, Any]) -> Path:
     """
     _CHECKPOINT_DIR.mkdir(parents=True, exist_ok=True)
     path = _CHECKPOINT_DIR / f"{experiment_name}.json"
-
-    caller_frame = inspect.currentframe()
-    caller_locals = caller_frame.f_back.f_locals if caller_frame is not None and caller_frame.f_back is not None else {}
-    clean = _build_checkpoint_payload(experiment_name, data, caller_locals)
+    clean = _build_checkpoint_payload(experiment_name, data)
 
     with open(path, "w") as f:
         json.dump(clean, f, indent=2, default=str)

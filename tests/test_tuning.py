@@ -35,19 +35,17 @@ class TestTuning(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             checkpoint_dir = Path(tmpdir)
 
-            def _save_from_notebook_context() -> Path:
-                y_train_oh = np.arange(6)
-                y_test_oh = np.arange(2)
-                with patch("src.tuning._CHECKPOINT_DIR", checkpoint_dir):
-                    return save_checkpoint(
-                        "exp_b_xgb_oh",
-                        {
-                            "metrics": {"mae": np.float64(1.5)},
-                            "best_params": {"max_depth": np.int64(4)},
-                        },
-                    )
+            with patch("src.tuning._CHECKPOINT_DIR", checkpoint_dir):
+                checkpoint_path = save_checkpoint(
+                    "exp_b_xgb_oh",
+                    {
+                        "metrics": {"mae": np.float64(1.5)},
+                        "best_params": {"max_depth": np.int64(4)},
+                        "train_size": 6,
+                        "test_size": 2,
+                    },
+                )
 
-            checkpoint_path = _save_from_notebook_context()
             payload = json.loads(checkpoint_path.read_text(encoding="utf-8"))
 
             self.assertEqual(payload["experiment"], "exp_b")
