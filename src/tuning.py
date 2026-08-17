@@ -87,6 +87,10 @@ _FEATURE_MODE_BY_EXPERIMENT = {
     "exp_f": "categorical_plus_sequential",
 }
 
+_FEATURE_MODE_BY_CHECKPOINT_NAME = {
+    "exp_b_lgbm_nat": "with_categorical_native",
+}
+
 
 def chronological_train_validation_split(
     X: Union[pd.DataFrame, np.ndarray],
@@ -145,7 +149,7 @@ def _parse_checkpoint_name(experiment_name: str) -> Tuple[str, str]:
     """Split a checkpoint name into experiment tag and model name."""
     experiment_parts = experiment_name.split("_")
     experiment_key = "_".join(experiment_parts[:2]) if len(experiment_parts) >= 2 else experiment_name
-    model_name = "_".join(experiment_parts[2:]) if len(experiment_parts) > 2 else experiment_name
+    model_name = "_".join(experiment_parts[2:]) if len(experiment_parts) > 2 else ""
     return experiment_key, model_name
 
 
@@ -167,10 +171,10 @@ def _build_checkpoint_payload(
     experiment_key, model_name = _parse_checkpoint_name(experiment_name)
     feature_mode = clean.get("feature_mode")
     if feature_mode is None:
-        if experiment_name == "exp_b_lgbm_nat":
-            feature_mode = "with_categorical_native"
-        else:
-            feature_mode = _FEATURE_MODE_BY_EXPERIMENT.get(experiment_key)
+        feature_mode = _FEATURE_MODE_BY_CHECKPOINT_NAME.get(
+            experiment_name,
+            _FEATURE_MODE_BY_EXPERIMENT.get(experiment_key),
+        )
 
     clean.setdefault("experiment", experiment_key)
     clean.setdefault("model", model_name)
