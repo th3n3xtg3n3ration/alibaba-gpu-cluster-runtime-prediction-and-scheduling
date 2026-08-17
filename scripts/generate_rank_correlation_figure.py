@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate the MAE/Spearman vs 256-GPU JCT gain figure for all 18 predictors."""
+"""Generate the MAE/Spearman vs JCT gain figures for all 18 predictors (32-GPU and 256-GPU)."""
 
 from __future__ import annotations
 
@@ -304,12 +304,21 @@ def _build_analysis_frame() -> pd.DataFrame:
     return analysis_df
 
 
-def _draw_panel(ax: plt.Axes, df: pd.DataFrame, *, x_col: str, xlabel: str, title: str) -> None:
+def _draw_panel(
+    ax: plt.Axes,
+    df: pd.DataFrame,
+    *,
+    x_col: str,
+    xlabel: str,
+    title: str,
+    y_col: str = "jct_gain_256",
+    ylabel: str = "256-GPU JCT gain over FIFO (%)",
+) -> None:
     """Draw one scatter panel with fitted line and Pearson correlation text."""
     sns.scatterplot(
         data=df,
         x=x_col,
-        y="jct_gain_256",
+        y=y_col,
         hue="policy",
         palette="tab20",
         s=95,
@@ -317,23 +326,23 @@ def _draw_panel(ax: plt.Axes, df: pd.DataFrame, *, x_col: str, xlabel: str, titl
         ax=ax,
     )
 
-    slope, intercept = np.polyfit(df[x_col], df["jct_gain_256"], deg=1)
+    slope, intercept = np.polyfit(df[x_col], df[y_col], deg=1)
     x_values = np.linspace(df[x_col].min(), df[x_col].max(), 200)
     y_values = slope * x_values + intercept
-    corr_value, _ = pearsonr(df[x_col], df["jct_gain_256"])
+    corr_value, _ = pearsonr(df[x_col], df[y_col])
 
     ax.plot(x_values, y_values, color="black", linestyle="--", linewidth=1.5)
     ax.set_xlabel(xlabel)
-    ax.set_ylabel("256-GPU JCT gain over FIFO (%)")
+    ax.set_ylabel(ylabel)
     ax.set_title(title)
     ax.grid(alpha=0.25)
 
     x_span = df[x_col].max() - df[x_col].min()
-    y_span = df["jct_gain_256"].max() - df["jct_gain_256"].min()
+    y_span = df[y_col].max() - df[y_col].min()
     for row in df.itertuples(index=False):
         ax.annotate(
             row.model,
-            (getattr(row, x_col), row.jct_gain_256),
+            (getattr(row, x_col), getattr(row, y_col)),
             xytext=(4, 4),
             textcoords="offset points",
             fontsize=8,
@@ -341,47 +350,79 @@ def _draw_panel(ax: plt.Axes, df: pd.DataFrame, *, x_col: str, xlabel: str, titl
 
     ax.text(
         df[x_col].min() + 0.02 * x_span,
-        df["jct_gain_256"].max() - 0.10 * y_span,
+        df[y_col].max() - 0.10 * y_span,
         f"Pearson r = {corr_value:.3f}",
         fontsize=10,
         bbox={"facecolor": "white", "edgecolor": "0.7", "boxstyle": "round,pad=0.3"},
     )
 
 
-def main() -> None:
-    """Generate and save the requested figure."""
-    logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(message)s")
-    sns.set_theme(style="whitegrid")
-
-    paths = load_paths_config()
-    figures_dir = PROJECT_ROOT / paths["results"]["figures_dir"]
-    figures_dir.mkdir(parents=True, exist_ok=True)
-    output_path = figures_dir / "mae_spearman_vs_jct_gain_256gpu.png"
-
-    analysis_df = _build_analysis_frame()
-
+def _generate_figure(
+    analysis_df: pd.DataFrame,
+    *,
+    y_col: str,
+    ylabel: str,
+    gpu_label: str,
+    output_path: Path,
+) -> None:
+    """Generate and save a two-panel MAE/Spearman vs JCT gain figure."""
     fig, axes = plt.subplots(1, 2, figsize=(16, 7), sharey=True)
     _draw_panel(
         axes[0],
         analysis_df,
         x_col="mae",
         xlabel="Test-set MAE (seconds)",
-        title="Point Accuracy vs 256-GPU JCT Gain",
+        title=f"Point Accuracy vs {gpu_label} JCT Gain",
+        y_col=y_col,
+        ylabel=ylabel,
     )
     _draw_panel(
         axes[1],
         analysis_df,
         x_col="spearman_rho",
         xlabel="Test-set Spearman $\\rho$",
-        title="Ranking Quality vs 256-GPU JCT Gain",
+        title=f"Ranking Quality vs {gpu_label} JCT Gain",
+        y_col=y_col,
+        ylabel=ylabel,
     )
 
-    fig.suptitle("Predictor Quality vs Scheduling Gain Across 18 Runtime Models", fontsize=14, fontweight="bold")
+    fig.suptitle(
+        f"Predictor Quality vs Scheduling Gain Across 18 Runtime Models ({gpu_label})",
+        fontsize=14,
+        fontweight="bold",
+    )
     fig.tight_layout()
     fig.savefig(output_path, dpi=150, bbox_inches="tight")
     plt.close(fig)
-
     LOGGER.info("Saved figure to %s", output_path)
+
+
+def main() -> None:
+    """Generate and save both 256-GPU and 32-GPU rank-correlation figures."""
+    logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(message)s")
+    sns.set_theme(style="whitegrid")
+
+    paths = load_paths_config()
+    figures_dir = PROJECT_ROOT / paths["results"]["figures_dir"]
+    figures_dir.mkdir(parents=True, exist_ok=True)
+
+    analysis_df = _build_analysis_frame()
+
+    _generate_figure(
+        analysis_df,
+        y_col="jct_gain_256",
+        ylabel="256-GPU JCT gain over FIFO (%)",
+        gpu_label="256-GPU",
+        output_path=figures_dir / "mae_spearman_vs_jct_gain_256gpu.png",
+    )
+    _generate_figure(
+        analysis_df,
+        y_col="jct_gain_32",
+        ylabel="32-GPU JCT gain over FIFO (%)",
+        gpu_label="32-GPU",
+        output_path=figures_dir / "mae_spearman_vs_jct_gain_32gpu.png",
+    )
+
     LOGGER.info("\n%s", analysis_df[["model", "spearman_rho", "mae", "jct_gain_32", "jct_gain_256"]].to_string(index=False))
 
 
