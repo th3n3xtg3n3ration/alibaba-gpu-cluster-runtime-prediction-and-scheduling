@@ -404,24 +404,27 @@ def main() -> None:
 
     paths = load_paths_config()
     figures_dir = PROJECT_ROOT / paths["results"]["figures_dir"]
+    export_png_dir = figures_dir / "thesis_export" / "png"
     figures_dir.mkdir(parents=True, exist_ok=True)
+    export_png_dir.mkdir(parents=True, exist_ok=True)
 
     analysis_df = _build_analysis_frame()
 
-    _generate_figure(
-        analysis_df,
-        y_col="jct_gain_256",
-        ylabel="256-GPU JCT gain over FIFO (%)",
-        gpu_label="256-GPU",
-        output_path=figures_dir / "mae_spearman_vs_jct_gain_256gpu.png",
-    )
-    _generate_figure(
-        analysis_df,
-        y_col="jct_gain_32",
-        ylabel="32-GPU JCT gain over FIFO (%)",
-        gpu_label="32-GPU",
-        output_path=figures_dir / "mae_spearman_vs_jct_gain_32gpu.png",
-    )
+    for out_dir in [figures_dir, export_png_dir]:
+        _generate_figure(
+            analysis_df,
+            y_col="jct_gain_256",
+            ylabel="256-GPU JCT gain over FIFO (%)",
+            gpu_label="256-GPU",
+            output_path=out_dir / "mae_spearman_vs_jct_gain_256gpu.png",
+        )
+        _generate_figure(
+            analysis_df,
+            y_col="jct_gain_32",
+            ylabel="32-GPU JCT gain over FIFO (%)",
+            gpu_label="32-GPU",
+            output_path=out_dir / "mae_spearman_vs_jct_gain_32gpu.png",
+        )
 
     LOGGER.info("\n%s", analysis_df[["model", "spearman_rho", "mae", "jct_gain_32", "jct_gain_256"]].to_string(index=False))
 
