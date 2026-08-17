@@ -403,14 +403,14 @@ def main() -> None:
     sns.set_theme(style="whitegrid")
 
     paths = load_paths_config()
-    figures_dir = PROJECT_ROOT / paths["results"]["figures_dir"]
-    export_png_dir = figures_dir / "thesis_export" / "png"
-    figures_dir.mkdir(parents=True, exist_ok=True)
+    export_png_dir = PROJECT_ROOT / paths["results"]["figures_dir"] / "thesis_export" / "png"
+    latex_fig_dir = PROJECT_ROOT / "thesis" / "latex" / "figures"
     export_png_dir.mkdir(parents=True, exist_ok=True)
+    latex_fig_dir.mkdir(parents=True, exist_ok=True)
 
     analysis_df = _build_analysis_frame()
 
-    for out_dir in [figures_dir, export_png_dir]:
+    for out_dir in [export_png_dir, latex_fig_dir]:
         _generate_figure(
             analysis_df,
             y_col="jct_gain_256",
