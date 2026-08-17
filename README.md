@@ -43,7 +43,8 @@ This project addresses resource fragmentation and queue latency in large-scale M
 │   ├── models/             # ML/DL architecture implementations
 │   ├── simulation/         # Discrete-event scheduling logic
 │   └── *.py                # Common utilities (Feature Engineering, Loading)
-└── tests/                  # Automated Unit Test Suite (100% Pass Rate)
+├── tests/                  # Automated Unit Test Suite (100% Pass Rate)
+└── thesis/                 # Complete MSc Thesis (LaTeX source, chapters & figures)
 ```
 
 ---
@@ -59,7 +60,7 @@ The experimental workflow is organized into six standardized phases, featuring p
 | **02** | [Workload Characterization](notebooks/en/02_workload_analysis.ipynb) | Arrival heatmaps and heavy-tail distribution analysis. |
 | **03** | [Feature Engineering](notebooks/en/03_feature_engineering.ipynb) | Cyclical timestamps, **One-Hot Encoding**, and resource offered-load engineering. |
 | **04** | [Predictive Modeling](notebooks/en/04_runtime_prediction_models.ipynb) | Multi-model benchmarking, hyperparameter tuning, and error topology analysis. |
-| **05** | [Scheduling Optimization](notebooks/en/05_scheduler_evaluation.ipynb) | Discrete-event heterogeneous policy evaluation and JCT comparative analysis. |
+| **05** | [Scheduling Optimization (32 GPU)](notebooks/en/05_scheduler_evaluation_32_gpu.ipynb) / [256 GPU](notebooks/en/05_scheduler_evaluation_256_gpu.ipynb) | Discrete-event heterogeneous policy evaluation and JCT comparative analysis. |
 
 *(Turkish versions are available under `notebooks/tr/`)*
 

@@ -32,4 +32,4 @@ This checklist serves as a professional verification guide to ensure the reposit
 - [x] **Environment spec:** Comprehensive `environment.yaml` and `requirements.txt` provided for reproducibility.
 
 ---
-*Verified for Academic Submission – 2025*
+*Verified for Academic Submission – 2026*

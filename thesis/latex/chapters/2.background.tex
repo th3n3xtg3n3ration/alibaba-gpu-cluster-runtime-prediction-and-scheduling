@@ -1,0 +1,235 @@
+\chapter{Background}\label{chp:relatedwork}
+
+This chapter outlines the theoretical context from which to evaluate the contributions of this thesis and reviews the literature that is most relevant to the issues it seeks to address. Section~\ref{sec:gpuclusters} discusses how clusters are managed for use with GPUs. Section~\ref{sec:scheduling} surveys job scheduling algorithms and production schedulers as well as the issues associated with estimating runtime. Section~\ref{sec:queuetheory} examines the theoretical foundation of queueing theory upon which the simulator is based. Section~\ref{sec:mlbackground} defines and explains ML and DL approaches employed in this thesis.  The final two sections survey directly related work on workload prediction and ML-assisted scheduling, and position this thesis within that landscape using a structured comparison.
+
+\needspace{5\baselineskip}
+\section{GPU Clusters and Cloud Computing}
+\label{sec:gpuclusters}
+
+Cloud computing has now become the predominant method of providing scalable computing resources. Organizations do not purchase or own equipment; instead, they rent equipment from shared data centers. The rental costs are based on consumption. Because this scalable system permits smaller organizations to utilize the same level of infrastructure as larger companies, it places an extreme amount of stress upon the resource management systems that determine who may use the shared computers.
+
+Within cloud-based data center environments, GPU clusters hold a unique position. While originally designed for graphics rendering, the massive number of processors within each GPU provides excellent performance when performing floating-point calculations using large matrices. Consequently, these characteristics make them well-suited for the linear algebra used within ML and DL. Due to their capabilities, GPU clusters have been adopted as the basis for most modern AI development and production activities. Using hundreds of GPU hours to train one large DL model is common. Inference services that render predictions to end-users must continuously provide low-latency access to all accelerators 24/7~\cite{weng2022mlaas}.
+
+From an operational standpoint, GPU resources are both expensive and energy-intensive. Therefore, cluster managers must simultaneously maximize hardware utilization (GPU usage), minimize job wait times (waiting in line), and prevent any single user from monopolizing a portion of the shared capacity. Frequently, maximizing utilization requires placing multiple jobs on the same hardware. This creates increased interference and raises job wait times.
+
+Multiple empirical analyzes of the operation of large-scale production GPU clusters confirm that the actual usage levels (utilization) of these clusters are less than would be expected if the maximum theoretical utilization rates were achieved. For example, an analysis of a multi-user GPU cluster operated by Microsoft reported average utilization of approximately 52\%. Scheduling was cited as a major contributor to the disparity between actual and potential utilization~\cite{jeon2019analysis}. A similar set of dynamics exists for Alibaba's PAI cluster. Job arrival patterns create daily rhythms followed by occasional spikes in activity that exceed available capacity~\cite{weng2022mlaas}.
+
+\needspace{5\baselineskip}
+\section{Job Scheduling in Distributed Systems}
+\label{sec:scheduling}
+
+The scheduler is the system component that determines when and on which machine to run each submitted job. In a shared cluster, the scheduler gets an unending flow of job requests from users, each having its own resource demand (CPU, GPU, memory), and must assign these jobs to a limited number of available machines.
+
+\subsection{Classical Scheduling Policies}
+
+In its most basic form, the scheduling method is called FIFO. This means jobs are processed in the same order they arrive. FIFO is simple to create and gives a good sense of fairness among competing jobs. However, FIFO has an inherent problem called ``head-of-line (HoL) blocking''. For example, if one very long-running job gets placed at the front of the processing queue, all other jobs behind it can't run until that very long-running job completes, regardless of how quickly those other jobs would finish using currently unused processing capacity.
+
+In contrast, SJF orders jobs based on their estimated length or total number of steps needed to complete them with the goal of getting each job done as fast as possible. It is well known that SJF is the best way to minimize average waiting times in systems where there is only one server or processor~\cite{kleinrock1975queueing,harchol2013performance}. The major issue with SJF is that SJF requires estimating how long each job will take to process prior to beginning processing, but typically you don't have this information available when a job arrives unless you have some type of predictive mechanism.
+
+Another class of policies includes resource-aware policies. Examples of resource-aware policies include SRF in which jobs are ranked based upon the amount of physical resources required to execute the job. By favoring the smallest jobs, SRF helps reduce the fragmentation of resources without needing to know anything about the job's runtime requirements. However, SRF is oblivious to how long each job takes to execute. Therefore, a small job that may take days to execute would always be selected over a larger job that executes within seconds.
+
+\subsection{Mice, Elephants, and Heavy Tails}
+
+A definitive characteristic of production cluster workloads is that their runtime distribution (the time it takes for each workload to be completed) follows a heavy tail. This phenomenon has been well documented in the computer networking and systems literature, often referred to as the ``elephants and mice'' phenomenon~\cite{gu2019tiresias}. Most jobs submitted to a cluster are ``mice''. These are typically short, interactive, or debugging-type jobs which only take seconds or minutes to complete. On the other hand, a very small percentage of jobs submitted to a cluster are ``elephants''; these are large, distributed DL training jobs that can run anywhere from days to weeks. Although the mice make up most of the job submissions, they do not use most of the resources on a cluster.
+
+The extreme variance of these workloads makes queue management extremely difficult. Under standard FIFO policies, an elephant job can sit atop the queue and monopolize resources for an extended period of time. Hundreds of mouse jobs may need to wait for hours or even days to begin due to this phenomenon, known as HoL blocking. Schedulers such as Tiresias~\cite{gu2019tiresias} show that effectively identifying and prioritizing mouse jobs over elephant jobs is critical to maintaining average completion times within acceptable limits.
+
+\subsection{Predict-then-Optimize vs. Decision-Focused Learning}
+
+A number of modern computer systems use ML techniques to predict how long jobs are likely to run so they can implement more sophisticated scheduling methods, such as SJF. Traditionally, this has been accomplished using a two-step PtO framework. The first step in the PtO framework uses regression models to find parameters that minimize a statistical error metric (e.g., MAE, RMSE) so the model produces a best estimate of how long each job will run. In the second step, the scheduler orders the queue based solely upon those predicted values.
+
+\clearpage
+A key problem with the PtO framework is that there is a major mismatch of goals between the model and the system administrator's objectives. The model's goal is to reduce statistical errors, while the administrator wants to improve scheduling performance metrics such as the average JCT. Research conducted recently in combinatorial optimization has shown that it is possible for one model to have a much smaller MAE than another model yet still lead to worse decision-making~\cite{mandi2023decision}. For instance, if a model predicts that an elephant job will take 50 hours to run versus 60 hours, the improvement in MAE is substantial; however, there is no corresponding improvement in terms of where in the scheduling queue the elephant is placed, as it will still be last. On the other hand, misclassifying a mouse job that takes 10 minutes to run as an elephant job that takes 10 hours to run results in poor JCT but a small change in MAE. Thus, this thesis argues that we need to move toward DFL, which evaluates predictive models not independently of one another, but rather strictly by their ability to generate an optimal ordering of jobs in the downstream scheduler.
+
+\subsection{Multi-Resource Scheduling}
+
+Workloads in real clusters typically consume many resource types. For example, a process could be using all available GPU memory and still have unused CPU cycles. The multi-resource version of Tetris was developed with multi-resource packing and is a natural extension of the concept of bin-packing but for CPU, memory, disk space, and networking resources together, and has been shown to produce less fragmentation than when considering only a single type of resource~\cite{grandl2014multi}. Dominant Resource Fairness (DRF) introduced the concept of fairness over multiple resource types through the notion of setting each tenant's dominant resource usage to an equal amount, and provides a max-min fair allocation scheme that generalizes fairness of a single resource~\cite{ghodsi2011dominant}.
+
+\clearpage
+Quincy then built upon this idea by treating cluster scheduling as a min-cost network flow problem where it balances throughput, fairness, and data locality~\cite{isard2009quincy}. TetriSched then took Quincy and improved upon those concepts by introducing adaptive planning instead of just deciding what will happen at every point in time. In other words, instead of deciding once and for all how to schedule jobs based on their immediate needs, TetriSched evaluates possible future scenarios and selects the path that maximizes some desired objective function over all different types of hardware~\cite{tumanov2016tetrisched}.
+
+\subsection{Runtime Estimation Challenges}
+
+The scope of operation for production schedulers creates problems which cannot be resolved by single policy choices. Google's Borg system runs hundreds of thousands of concurrent tasks across tens of thousands of computers using a combination of priority-based preemption, task packing, and over-commitment~\cite{verma2015large}. Its successor, Omega, includes a shared state architecture which permits one or more concurrent schedulers to independently determine placement for optimistically placed tasks; this increases scheduling speed at the expense of potential conflict~\cite{schwarzkopf2013omega}. Kubernetes builds upon these concepts to create an open, declarative orchestration platform~\cite{burns2016borg}; the scheduler places pods onto nodes based on requested resources and node taints. However, similar to Borg, it is fundamentally oblivious to the execution time duration for each workload. GPU resources are available via device plugins; therefore, the aforementioned scheduling limitations also apply directly to managing DL clusters.
+
+Apache Mesos uses a two-level scheduling structure; a centralized resource manager offers resources to a framework-specific scheduler~\cite{hindman2011mesos}. Similar to Apache Hadoop YARN and Kubernetes, Apache Mesos allocates resources to frameworks as per instantaneous request and fairness policies and does not include native runtime prediction capabilities.
+
+\clearpage
+Apache Hadoop YARN is the most widely adopted scheduler for parallel processing batches~\cite{vavilapalli2013yarn}. Both the Fair Scheduler and the Capacity Scheduler use instantaneous resource requests and queue priorities for allocation without including native mechanisms for runtime prediction. Jobs that run for a long period and those that run for a short period are placed into the same queues, causing large jobs to occupy capacity that numerous small jobs may have utilized sequentially.
+
+For HPC environments, Simple Linux Utility for Resource Management (SLURM) is the de facto standard~\cite{yoo2003slurm}. SLURM's backfill scheduler schedules user-specified wall-times (estimates) for filling gaps that exist between reserved large jobs. If there exists a window of opportunity such that a small job can be initiated immediately and complete prior to when a larger reserved job is scheduled to initiate, then that small job will be scheduled into that window. Although theoretically effective, the backfill process is highly dependent upon the accuracy of the user-provided wall-time estimates. Studies have been conducted of production HPC environments, demonstrating empirically that users tend to exaggerate their estimated wall-time usage by factors ranging from two to ten on average~\cite{tsafrir2007backfill}. Due to the fear of having jobs canceled due to exceeding their allotted wall-time, users pad their estimates. This introduces a significant bias into the scheduler's ability to generate accurate forward-looking estimates, resulting in lost reservation windows, reduced backfill utilization, and continued underutilization of cluster resources.
+
+Similar issues are present with the Portable Batch System (PBS)~\cite{henderson1995job} and other variants. The need to rely on user-declared wall-times is widespread among HPC schedulers. This reliance has driven years of research focused on providing system-generated runtime predictions as replacements for user declarations~\cite{tsafrir2007backfill}. The objective of this thesis is to expand this research direction into the GPU cluster environment, where user estimations of runtime are similarly inaccurate yet workloads (i.e., heterogeneous DL training jobs) vary significantly more and are much harder to estimate than typical MPI simulations.
+
+\clearpage
+Another consistent theme throughout all of the above-referenced production schedulers is that static policies are inherently reactive; they respond solely to the current condition of the cluster and do not anticipate how workloads will evolve. This fundamental issue with static policies demonstrates a clear motivation to combine predictive elements with existing schedulers, which can provide forward-looking estimates, allowing schedulers to act proactively today.
+
+\subsection{Learning-based Scheduling}
+
+This work has shown a new direction in applying ML to create schedules based solely on workload data. While prior work has developed scheduling techniques using ML and trained them using simulated environments or traditional optimization methods, researchers have now utilized DRL to develop an autonomous method of creating scheduling policies for cluster data processing jobs~\cite{mao2019learning}. Decima utilizes a DRL approach where a neural network is developed to take cluster states (e.g., available resources) and generate scheduling decisions. The neural network learns how best to schedule jobs based upon the reward function that is generated from completed job times. Research showed that learned policies may be better than manually developed heuristics when evaluating realistic workloads; however, there were two major limitations of this study: it required utilizing a simulation environment to train the model, and it focused primarily on data processing applications rather than those utilizing GPUs. As such, the results cannot be directly applied to a real-world GPU cluster.
+
+Additionally, researchers have also utilized supervised ML approaches to apply to scheduling. In these studies, models are developed to estimate specific job attributes (i.e., parameters), such as the performance sensitivity of jobs to co-located workloads. Using these estimations, schedulers are able to make informed decisions regarding which jobs should be scheduled together and which should be isolated~\cite{delimitrou2013paragon,delimitrou2014quasar}.
+
+\clearpage
+The advantages of the approach presented here include preserving the ability to understand why a decision was made, maintaining the interpretability of the underlying decision-making process. The utilization of ML predictions allows the scheduler to obtain additional information about potential job runtimes, which can help improve the order of the queues. What differentiates the approach described within this thesis from conventional schedulers and DRL-based systems is the emphasis on interpretability and quantitative measures. Unlike prior research, ML predictions will not replace the role of the scheduler. Instead, they will serve as another input to a conventional SJF scheduler. This maintains the well-understood theoretical properties of SJF while allowing the scheduler to benefit from data-driven runtime estimates. Lastly, the end-to-end evaluation framework described above will provide a direct measure of the improvement in scheduling due to the quality of the prediction.
+
+\needspace{5\baselineskip}
+\section{Queueing Theory Foundations}
+\label{sec:queuetheory}
+
+The scheduling simulator in this thesis is grounded in classical queueing theory. This section introduces the key concepts used to reason about system behavior under load.
+
+\subsection{Basic Queueing Model}
+
+To develop analytical intuition, a cluster scheduler may be approximated using the M/G/1 queue model~\cite{kleinrock1975queueing}, but the real input arrival process does not meet the Poisson assumptions made by that model, as discussed in Chapter~\ref{chp:dataset}. Using this idealized model, we assume jobs arrive according to a Poisson process with an arrival rate of $\lambda$ jobs per second, and that each job will be serviced for an average time of $1/\mu$ seconds per job on a single server. The system load, or \textit{traffic intensity}, is defined as:
+
+\begin{equation}
+\rho = \frac{\lambda}{\mu}
+\label{eq:rho}
+\end{equation}
+
+When $\rho < 1$, then the queue is stable. In other words, the server will keep up with the input of jobs on average and the expected wait time will remain bounded. As $\rho \to 1$, the queue will approach saturation and the expected wait time will grow infinitely according to the Pollaczek-Khinchine (P-K) mean-value equation~\cite{kleinrock1975queueing}:
+
+\begin{equation}
+\mathbb{E}[W] = \frac{\rho}{\mu(1-\rho)} \cdot \frac{1 + c_s^2}{2}
+\label{eq:pk}
+\end{equation}
+
+where $c_s^2$ represents the squared coefficient of variation of the service time distribution. Given the extreme variances for the Alibaba GPU workloads examined here (with a mean of 5,223\,s and a standard deviation of 15,980\,s), a large squared coefficient of variation $c_s^2 \approx 9.36$ was observed. Therefore, it appears that the blow-up of the queue under load is significantly greater than if a standard exponential model ($c_s^2 = 1$) were used.
+
+\clearpage
+As mentioned above, while the M/G/1 model is presented to provide analytical insight into how a cluster behaves, it does not directly represent how a cluster works. The simulation software described in Chapter~\ref{chp:simulation} builds upon the single-server model by using multiple nodes and resources that have varying characteristics. While closed-form expressions like Equation~\ref{eq:pk} do not apply to the multi-server models, qualitative versions of these concepts, including traffic intensity, SJF optimality, and queue blow-ups when $c_s^2 > 1$, can be applied.
+
+\subsection{Little's Law}
+
+A fundamental relationship in queueing theory is Little's Law~\cite{kleinrock1975queueing}:
+
+\begin{equation}
+    L = \lambda W
+    \label{eq:little}
+\end{equation}
+
+where $L$ is the average number of jobs in the system, $\lambda$ is the average arrival rate, and $W$ is the average time a job spends in the system (waiting plus executing). Little's Law applies to all steady-state queueing systems regardless of whether arrivals are distributed according to a specific probability distribution function or if service times have some form of distribution. As an implication for scheduling, if we reduce the average waiting time $W$ of jobs arriving at our scheduler, with a constant arrival rate $\lambda$, we will also be able to reduce the average number of jobs concurrently queueing ($L$), as this reduction in concurrent queueing will reduce both resource contention and HoL blocking.
+
+\subsection{SJF Optimality and the Role of Prediction}
+
+For the M/G/1 queue, the SJF scheduling algorithm is used in order to minimize the mean waiting time among all non-preemptive work-conserving policies~\cite{kleinrock1975queueing,harchol2013performance}. In theory, SJF works well because it directs short jobs prior to them being blocked by longer jobs. As a result, SJF maximizes the number of jobs exiting the queue quickly. However, there is a fundamental problem with using SJF: the system needs to know the length of each job's service time \textit{prior} to starting to execute the job.
+
+User-supplied estimated runtimes in many real-world GPU cluster environments are poor predictors. There have been studies demonstrating that user-supplied estimations of job runtimes are often unreliable~\cite{tsafrir2007backfill}. Additionally, in many GPU cluster systems, the distribution of job sizes is also heavy-tailed. Consequently, predicting a specific job size or runtime from its characteristics is difficult. Thus, it is most appropriate to understand ML-based runtime predictions as oracle approximations; a trained ML model acts as a proxy for the true service time of a job. This allows the scheduler to make an approximation of SJF with some degree of accuracy. Ultimately, this reasoning provides motivation for the experimental design of this thesis, which evaluates the performance of ML-SJF algorithms compared to the SJF-Oracle policy (which uses actual runtimes).
+
+\subsection{Load Factor and the Flash Crowd Scenario}
+
+In this thesis, the test workload is replayed using a \textit{load factor} of $\alpha = 0.1$; i.e., job submission timestamps are compressed by a factor of ten compared to the original trace. This does not change the order of events, but increases the effective arrival rate $\lambda$ by $10\times$. Using an original trace duration of roughly 7.6 days and 82,184 jobs, we obtain an effective global arrival rate of $\lambda \approx 1.24$ jobs per second. Because the average service time is so long, it pushes the system into a prolonged burst (i.e., ``flash crowd'') regime where the traffic intensity $\rho$ is at or above 1.0 (saturation). Under such circumstances, the queue bottleneck is sufficiently severe that the ordinal ranking choices made by each ML model have a significant and measurable impact on JCT, meaning scheduling policies can be meaningfully differentiated from one another only while the queue is under sustained pressure.
+
+
+\needspace{5\baselineskip}
+\section{Machine Learning and Deep Learning Background}
+\label{sec:mlbackground}
+
+\subsection{Tree-based Ensemble Methods}
+
+Tree-based ensemble methods are among the most effective supervised learning techniques for tabular data. They train a group of decision trees and combine their predictions in order to reduce variance and improve generalization.
+
+\textbf{RF}~\cite{breiman2001random} trains each tree on a bootstrap sample (bagging) and selects a random subset of features at each split. The prediction from each tree is then averaged. Feature importance is estimated by tracking the MDI or accuracy resulting from permuting that particular feature.
+
+\textbf{XGB}~\cite{chen2016xgboost} introduced an efficient implementation of gradient boosting. It adds trees sequentially to correct the residual errors of the ensemble. Its regularized objective and efficient algorithm for finding the best split made gradient boosting practical at a large scale, making it a standard baseline for applied research.
+
+\textbf{LGBM}~\cite{ke2017lightgbm} further improved the efficiency of gradient boosting through two new techniques: Gradient-based One-Side Sampling (GOSS), which allows LGBM to focus computation on those training examples with the largest gradients; and Exclusive Feature Bundling (EFB), which takes advantage of the sparsity of feature matrices to reduce the number of effective features. These techniques allow LGBM to train substantially faster than XGB on very large datasets while achieving similar or even better accuracy.
+
+\newpage
+\subsection{Deep Learning for Sequence Prediction}
+
+DL models learn hierarchical representations for sequential data using stacked layers of non-linear transformations. Recurrent architectures are particularly well-suited for sequential data because they maintain a hidden state that accumulates information from previous inputs.
+
+\textbf{LSTM} networks~\cite{hochreiter1997long} were developed specifically to address the vanishing gradient problem associated with simple recurrent networks. LSTMs achieve this using a set of gating mechanisms: an input gate allows new information to be added into the cell state, while an output gate determines how much of the cell's current contents is used when generating the next value in the sequence. A forget gate allows some or all of the current cell contents to be discarded, allowing the network to effectively ``forget'' previous values and thereby capture long-term relationships between elements in the sequence.
+
+\textbf{1D-CNNs} apply learnable filters that scan along one dimension of their input (the time dimension) to detect recurring local patterns at arbitrary positions. In many time-series applications, these locally recurring patterns provide highly useful contextual information.
+
+\textbf{CNN-LSTM hybrids} were developed to take advantage of both the ability of 1D-CNNs to detect local patterns at arbitrary locations and the ability of LSTM networks to capture long-term dependencies over sequences. These hybrid architectures typically work by extracting local features from fixed-length windows of the input sequence using convolutional layers, and then passing these resulting feature maps through LSTM layers. These LSTM layers then model the temporal dependencies present in the feature map streams. Ultimately, a CNN-LSTM hybrid architecture is able to capture both short-range local patterns and long-range global trends in sequential data.
+
+\newpage
+\subsection{Tabular Data and the Limits of Deep Learning}
+
+Most recent empirical research indicates that whether DL will be superior to tree-based methods depends heavily on the characteristics of the data used. In cases like image and text data, DL is better due to its ability to learn hierarchical representations based upon raw, high-dimensional input. For tabular data, where there is an inherent semantic meaning to each attribute (feature), numerous studies indicate that tree-based methods perform as well as or better than DL architectures on various tasks~\cite{shwartzziv2022tabular}. Tree-based models can use tabular attributes at a level of abstraction to make predictions; however, DL models must first determine this hierarchy from raw input. Therefore, the need for DL models to find this structure may cause them to overfit on the smaller, less homogeneous datasets common when collecting cluster trace information.
+
+As a result of these findings, the choice of models for runtime prediction in this thesis should depend heavily upon the nature of the data collected from the Alibaba PAI cluster trace. Each job recorded within the trace is described using a few hand-crafted features whose meanings are clearly defined. For this reason, tree-based models should be considered a natural fit for predicting runtime for jobs in the trace. The results presented in Chapter~\ref{chp:results} demonstrate that tree-based models outperform sequential DL architectures on the same dataset.
+
+\needspace{5\baselineskip}
+\section{Related Work}
+
+\subsection{Cluster Workload Prediction}
+
+Predicting behavior at a job level has been analyzed in both cloud and HPC environments. The Resource Central system from Microsoft was able to demonstrate how ML models trained using Azure job records could be used to estimate the amount of VM resources that would be needed in order to proactively place jobs onto the hardware, thus improving the utilization of hardware~\cite{cortez2017resource}. In many ways, Resource Central is a close predecessor; it uses ML techniques to analyze data from production clusters to better schedule jobs. However, Resource Central focused on managing VMs and did not focus on GPU-specific workloads or systematically compare different model families.
+
+Memory contention and unpredictable co-location effects were found to be the two primary factors limiting increases in efficiency when analyzing Alibaba's datacenter traces~\cite{guo2019limits}. Another research effort studying a Microsoft GPU cluster detailed the statistical properties of DL training workloads~\cite{jeon2019analysis} and confirmed that due to the heterogeneity and heavy-tailed nature of these types of workloads, predicting runtimes will be a difficult task but one with value.
+
+Weng et al. provided the empirical foundation for this thesis by introducing, analyzing, and proposing several scheduling improvements based upon the observed workload properties utilizing the Alibaba PAI trace used throughout this thesis~\cite{weng2022mlaas}. While their work provided an excellent basis for further research, they did not provide a systematic comparison of multiple ML and DL prediction models, and did not evaluate predictions within a controlled scheduling simulator.
+
+\newpage
+\subsection{Recent GPU Cluster Schedulers}
+
+Recent years have seen an explosion of research into the particularities of DL workloads on GPU clusters. Several systems have added new features to better accommodate DL training dynamics. For example, Gandiva~\cite{xiao2018gandiva} and Optimus~\cite{peng2018optimus} introduced introspective scheduling and dynamic resource scaling, respectively, for optimal performance. Similarly, Themis~\cite{mahajan2020themis} focused on addressing issues with multi-resource fairness specifically for ML applications. More recently, AntMan~\cite{xiao2020antman} has shown that applying fine-grained dynamic scaling for co-locating jobs on shared GPUs improves overall JCT when compared to statically allocating the same number of jobs. Similarly, Gavel~\cite{narayanan2020heterogeneity} has shown that heterogeneous GPU architectures allow for improved utilization through heterogeneity-aware policies. Lastly, Pollux~\cite{qiao2021pollux} extends this paradigm of adaptive job scheduling by considering both the system-wide availability of resources and statistical measures of training goodput.
+
+These systems demonstrate the current state of the art in terms of adapting the queue management process to provide efficient throughput; however, most of these systems do not account for reliability concerns associated with predicting accurate runtimes. As such, this thesis will examine the upstream challenges associated with providing reliable runtime estimates and explore how different paradigms for estimating runtime (i.e., point-based vs. rank-based) affect the underlying queue management mechanisms.
+
+\subsection{ML-assisted and Learned Scheduling}
+
+Many systems are utilizing ML predictions within production environment scheduling loops. The central premise of this idea is that even inaccurate runtime estimates will significantly improve scheduling efficiency when used to approximate SJF. For example, Resource Central demonstrates that the value of prediction does not lie in achieving perfect accuracy, but rather in whether the improvement in scheduling outcomes is proportional to the increase in prediction accuracy~\cite{cortez2017resource}.
+
+\clearpage
+Additionally, learned scheduling methods such as Decima~\cite{mao2019learning} utilize a fundamentally different method. Rather than producing predictions on the runtime of jobs and then providing those predictions to a traditional scheduler, Decima trains the scheduling policy directly using DRL. Although powerful, this process necessitates a realistic simulator for the training, provides little ability to inspect or audit the produced policy, and is generally focused on a single type of workload (Decima was developed specifically for directed acyclic graph (DAG) job structures, not the heterogeneous batch workloads found in GPU clusters).
+
+The objective of this thesis is to establish a middle ground. This thesis utilizes ML predictions as inputs to a traditional scheduler (ML-assisted SJF), thereby retaining the ability to understand and audit the decision-making process behind the scheduling decisions, while taking advantage of data-driven runtime estimates. The end-to-end pipeline from prediction to simulation established by this thesis allows for the direct quantification of how much prediction accuracy is worth relative to improvements in scheduling results.
+
+\subsection{Learning to Rank for Scheduling}
+
+A new trend in the literature has been developing toward viewing scheduling based on SJF as primarily a ranking issue as opposed to strictly a regression issue. Recent research on Learning to Rank (L2R) for scheduling~\cite{fu2024efficient} asserts that there is no need to have an absolute measure of the time required to complete each task; only a knowledge of which tasks should be ranked higher than other tasks is needed. For example, for the scheduler, determining the relative ordering of mice and elephants would be sufficient. Therefore, many DL architectures, especially those utilizing categorical embeddings, may perform well as rankers simply due to their ability to determine the relative differences among objects (e.g., users or job types), as opposed to attempting to predict the actual execution time. It also explains why, although models may not accurately predict exact runtimes, they often can do significantly better at managing a scheduling queue, as illustrated in Chapter~\ref{chp:results}.
+
+\needspace{5\baselineskip}
+\section{Comparison and Positioning}
+
+Table~\ref{tab:related} provides a summary of the closest works regarding the five aspects mentioned above: type of approach, dataset used, goal of the work, evaluation of results in a scheduling context, and comparison between algorithmic approaches and ML approaches.
+
+\begin{table}[htbp]
+\centering
+\caption{Comparison of related work with this thesis.}
+\label{tab:related}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lllccc}
+\hline
+\textbf{Work} & \textbf{Approach} & \textbf{Dataset} & \textbf{Sched. Integration} & \textbf{ML vs. Alg.} & \textbf{Runtime Pred.} \\ 
+\hline
+Verma et al.~\cite{verma2015large} & Algorithmic & Google Borg & \checkmark & -- & -- \\ 
+Isard et al.~\cite{isard2009quincy} & Algorithmic & MS cluster & \checkmark & -- & -- \\ 
+Grandl et al.~\cite{grandl2014multi} & Algorithmic & MS cluster & \checkmark & -- & -- \\ 
+Tumanov et al.~\cite{tumanov2016tetrisched} & Algorithmic & MS cluster & \checkmark & -- & -- \\ 
+Vavilapalli et al.~\cite{vavilapalli2013yarn} & Algorithmic & Hadoop cluster & \checkmark & -- & -- \\ 
+Yoo et al.~\cite{yoo2003slurm} & Algorithmic & HPC & \checkmark & -- & -- \\ 
+Tsafrir et al.~\cite{tsafrir2007backfill} & Statistical & HPC & \checkmark & -- & \checkmark \\ 
+Gu et al.~\cite{gu2019tiresias} & Algorithmic & MS GPU cluster & \checkmark & -- & -- \\ 
+Mao et al.~\cite{mao2019learning} & DRL & Synthetic & \checkmark & -- & -- \\ 
+Cortez et al.~\cite{cortez2017resource} & ML & Azure & \checkmark & -- & \checkmark \\ 
+Jeon et al.~\cite{jeon2019analysis} & Analysis & MS GPU cluster & -- & -- & -- \\ 
+Guo et al.~\cite{guo2019limits} & Analysis & Alibaba DC & -- & -- & -- \\ 
+Xiao et al.~\cite{xiao2018gandiva} & Algorithmic & MS cluster & \checkmark & -- & -- \\ 
+Peng et al.~\cite{peng2018optimus} & Algorithmic & Synthetic & \checkmark & -- & -- \\ 
+Xiao et al.~\cite{xiao2020antman} & Algorithmic & MS cluster & \checkmark & -- & -- \\ 
+Mahajan et al.~\cite{mahajan2020themis} & Algorithmic & Synthetic & \checkmark & -- & -- \\ 
+Narayanan et al.~\cite{narayanan2020heterogeneity} & Algorithmic & Synthetic & \checkmark & -- & -- \\ 
+Qiao et al.~\cite{qiao2021pollux} & Adaptive & Synthetic & \checkmark & -- & -- \\ 
+Weng et al.~\cite{weng2022mlaas} & Analysis + Heuristic & Alibaba PAI & \checkmark & -- & -- \\ 
+\hline
+\textbf{This thesis} & \textbf{ML + Simulation} & \textbf{Alibaba PAI} & \checkmark & \checkmark & \checkmark \\ 
+\hline
+\end{tabular}%
+}
+\end{table}
+
+Two key areas for further research that are targeted in this thesis are highlighted by the table. Firstly, there is currently no systematic training or comparison of various ML and DL families using the same dataset, all done in a controlled manner. Secondly, although many studies have incorporated ML into scheduling~\cite{cortez2017resource,mao2019learning}, none have provided a direct link between the predictive accuracy of an ML-based model and its operational impact as part of scheduling in a large-scale GPU cluster environment via controlled simulation.
+
+By developing a full pipeline from raw data to scheduling evaluation, comparing six prediction models across two paradigm types, and translating differences in predictions to actual scheduling outcome changes using an event-driven simulation, this thesis will fill both identified gaps.
+
+\clearpage
+A study of ML prediction methods alone cannot provide insight as to whether the use of a more accurate predictor leads to improved scheduling outcomes. By combining simulation with prediction, this thesis will evaluate models based on their statistical properties as well as their operational impact, thereby providing a comprehensive view of the utility of each model.
+
+Lastly, the focus of Table~\ref{tab:related} is on published studies with reproducible results on real-world production traces. Since this thesis relies heavily on empirically grounded analysis based on the Alibaba PAI trace, the broader literature based solely on simulations is excluded; thus, the applicability of these results to other workloads remains an open question which is discussed in Chapter~\ref{chp:conclusion}.

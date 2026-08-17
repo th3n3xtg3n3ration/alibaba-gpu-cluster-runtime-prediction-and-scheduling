@@ -1,0 +1,159 @@
+\appendix
+
+\chapter{Per-Experiment Prediction Results}\label{chp:app1}
+\addtocontents{toc}{\protect\setcounter{tocdepth}{0}}
+
+This appendix lists the detailed predictions for every single one of the six experiments (A through F) in Chapter~\ref{chp:prediction}. In addition to the per-experiment results listed in this chapter, these tables will allow a reader to directly compare performance amongst each of the different model setups used in each of the six experiments. The results reported in Chapter~\ref{chp:results} for Table~\ref{tab:predresults} provide only the best performing models from each of the experiments.
+
+\clearpage
+\section{Experimental Data Summary}
+
+Table~\ref{tab:data-summary} describes the dataset characteristics, feature setup, target variable and input structure for each of the six experiments. Each of the experiments utilizes an identical time-ordered 80/20 split on their 82,184 total sample space; i.e., there are 65,747 training samples and 16,437 testing samples. Every experiment predicts the raw job run-time as seconds ($y$).
+
+\begin{table}[H]
+\centering
+\caption[Dataset dimensions and feature configuration]{Dataset dimensions and feature configuration per experiment. $d$ denotes the number of input features. All experiments use the same chronological 80/20 train/test split.}
+\label{tab:data-summary}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{llrllll}
+\hline
+\textbf{Exp} & \textbf{Feature Mode} & \textbf{$d$} & \textbf{X\_train} & \textbf{X\_test} & \textbf{Target ($Y$)} & \textbf{Input Framing} \\ 
+\hline
+A & Numeric only & 9 & $65{,}747 \times 9$ & $16{,}437 \times 9$ & $y$ & Independent rows \\ 
+B (One-Hot) & Numeric + Categorical (OH) & 591 & $65{,}747 \times 591$ & $16{,}437 \times 591$ & $y$ & Independent rows \\ 
+B (Native) & Numeric + Categorical (Native) & 11 & $65{,}747 \times 11$ & $16{,}437 \times 11$ & $y$ & Independent rows \\ 
+C & Numeric only & 9 & $65{,}747 \times 9$ & $16{,}437 \times 9$ & $y$ & Sliding window ($w=1$) \\ 
+D & Numeric + Categorical (OH) & 591 & $65{,}747 \times 591$ & $16{,}437 \times 591$ & $y$ & Sliding window ($w=1$) \\ 
+E & Numeric only & 9 & $65{,}747 \times 9$ & $16{,}437 \times 9$ & $y$ & Sliding window ($w=10$) \\ 
+F & Numeric + Categorical (OH) & 591 & $65{,}747 \times 591$ & $16{,}437 \times 591$ & $y$ & Sliding window ($w=10$) \\ 
+\hline
+\end{tabular}%
+}
+\end{table}
+
+The nine numeric characteristics are: gpu\_demand, number of CPUs, number of instances, arrival time (in seconds), the hour of the day, the day of the week, the load on the cluster by number of CPUs, the load on the cluster by number of GPUs, and active job count.
+
+In all experiments where One-Hot encoding was used (B, D, F) there were two categorical characteristics, user and gpu\_type. Each characteristic has been expanded to 582 binary indicator columns. This produces a total of 591 input characteristic values.
+
+LGBM, which is able to process categorical data natively, has been passed the two categorical characteristics directly as categories. As such, d=11.
+
+\clearpage
+\section{Experiment A: Tree-Based Models, Numeric Features Only}
+
+Table~\ref{tab:expa-full} lists all the results from Experiment A. All three models have been trained using 65,747 examples, each example containing 9 numeric feature attributes (d=9). These attribute names can be found in Table~\ref{tab:features}. No additional encoding had been done on either the categorical or numeric feature attributes.
+
+\begin{table}[H]
+\centering
+\caption[Results for Experiment A]{Experiment A: tree-based models using numeric features only. Metrics are calculated on the original (non-log) runtime scale for the held-out test set.}
+\label{tab:expa-full}
+\begin{tabular}{lrrrrr}
+\hline
+\textbf{Model} & \textbf{MAE (s)} & \textbf{MedAE (s)} & \textbf{RMSE (s)} & \textbf{MAPE (\%)} & \textbf{R\textsuperscript{2}} \\ 
+\hline
+RF  & 4{,}316 & 1{,}508 & 13{,}831 & 16.85 & 0.27 \\ 
+XGB        & 4{,}808 & 1{,}894 & 13{,}965 & 19.02 & 0.26 \\ 
+LGBM       & 5{,}212 & 2{,}259 & 14{,}315 & 20.66 & 0.22 \\ 
+\hline
+\end{tabular}
+\end{table}
+
+\clearpage
+\section{Experiment B: Tree-Based Models, Categorical Features}
+
+Table~\ref{tab:expb-full} lists the results for Experiment B. As such, adding the One-Hot encoded \texttt{gpu\_type} and \texttt{user} variables as additional features increases the total number of dimensions in the feature space from nine (nine) to 591 (591). This is also the biggest single improvement of all of the experiments. The performance of the best experiment (Experiment A) was improved by .25 when using a One-Hot encoded version of the \texttt{gpu\_type} and \texttt{user} variables (XGB; One-Hot), while LGBM's ability to natively use categorical values ($d=11$) produces a competitive result that does not have the same dimensionality issues as the One-Hot encoded data.
+
+\begin{table}[H]
+\centering
+\caption[Results for Experiment B]{Experiment B: tree-based models using One-Hot encoding for categorical features. One-Hot encoding is applied to \texttt{gpu\_type} and \texttt{user}. LGBM Native uses its built-in handler for categorical features.}
+\label{tab:expb-full}
+\begin{tabular}{lrrrrr}
+\hline
+\textbf{Model} & \textbf{MAE (s)} & \textbf{MedAE (s)} & \textbf{RMSE (s)} & \textbf{MAPE (\%)} & \textbf{R\textsuperscript{2}} \\ 
+\hline
+XGB (One-Hot)        & \textbf{3{,}389} & \textbf{1{,}129} & \textbf{11{,}375} & \textbf{10.80} & \textbf{0.51} \\ 
+LGBM (Native Cat.)   & 4{,}106 & 1{,}510 & 12{,}147 & 14.55 & 0.44 \\ 
+RF (One-Hot)  & 4{,}187 & 1{,}888 & 12{,}380 & 15.57 & 0.42 \\ 
+LGBM (One-Hot)       & 4{,}388 & 1{,}644 & 13{,}055 & 14.43 & 0.35 \\ 
+\hline
+\end{tabular}
+\end{table}
+
+\clearpage
+\section{Experiment C: Static Deep Learning, Numeric Features Only}
+
+Table~\ref{tab:expc-full} shows results from Experiment C. The three DL architectures all receive the same nine numeric features as those used in Experiment A; however, they are delivered as single step sequential data ($w=1$) and all performed poorly compared to the tree based models (all have $R^{2}$ values near or equal to zero). Although CNN is best of the three for MAE, it had a negative value for $R^{2}$, which means that it did not better than the mean prediction model regarding how much variance was explained by the model.
+
+\begin{table}[H]
+\centering
+\caption[Results for Experiment C]{Experiment C: static DL models using numeric features only.}
+\label{tab:expc-full}
+\begin{tabular}{lrrrrr}
+\hline
+\textbf{Model} & \textbf{MAE (s)} & \textbf{MedAE (s)} & \textbf{RMSE (s)} & \textbf{MAPE (\%)} & \textbf{R\textsuperscript{2}} \\ 
+\hline
+CNN            & 6{,}454 & 3{,}166 & 15{,}715 & 18.60 & $-$0.02 \\ 
+CNN-LSTM Hybrid & 7{,}020 & 4{,}359 & 15{,}400 & 28.70 & 0.02 \\ 
+LSTM           & 8{,}184 & 6{,}442 & 15{,}562 & 42.16 & 0.00 \\ 
+\hline
+\end{tabular}
+\end{table}
+
+\clearpage
+\section{Experiment D: Static Deep Learning, Categorical Features}
+
+Table~\ref{tab:expd-full} presents the performance data for Experiment D. Adding one-hot encoded categorical variables increased the number of input dimensions from 9 to 591 ($w=1$), thus improving upon the results of each of the three DL models when compared to Experiment C. The LSTM model showed improvement in its $R^2$ statistic, from a value of 0.00 to 0.06, as well as achieving the minimum MAPE (6.51 \%) for this experiment; these statistics suggest that both \texttt{user} and \texttt{gpu\_type} provide useful information about the outcome variable for the LSTM. Nevertheless, the highest possible $R^2$ value obtained by any of the DL models was less than half that achieved by the best performing tree based model in Experiment B (maximum $R^2$ = .11 CNN-LSTM).
+
+\begin{table}[H]
+\centering
+\caption[Results for Experiment D]{Experiment D: static DL models using One-Hot encoding for categorical features.}
+\label{tab:expd-full}
+\begin{tabular}{lrrrrr}
+\hline
+\textbf{Model} & \textbf{MAE (s)} & \textbf{MedAE (s)} & \textbf{RMSE (s)} & \textbf{MAPE (\%)} & \textbf{R\textsuperscript{2}} \\ 
+\hline
+LSTM            & 5{,}836 & 1{,}576 & 15{,}057 & \textbf{6.51}  & 0.06 \\ 
+CNN-LSTM Hybrid & 6{,}618 & 3{,}607 & 14{,}702 & 22.30 & \textbf{0.11} \\ 
+CNN             & 6{,}866 & 3{,}717 & 15{,}002 & 23.78 & 0.07 \\ 
+\hline
+\end{tabular}
+\end{table}
+
+\clearpage
+\section{Experiment E: Temporal Deep Learning, Numeric Features}
+
+Table~\ref{tab:expe-full} presents the results for Experiment E. The sliding window technique extended the size of the sequences from $w=1$ to $w=10$. This was achieved by adding nine numerical features into the sequence ($d=9$) allowing each of the three DL models to see the ten most recent jobs. However, despite having a richer temporal history than the static models used in Experiment C, none of the three DL models were able to outperform the static models: Negative $R^2$ values are provided for both CNN and CNN-LSTM demonstrating that there is insufficient temporal autocorrelation among consecutive jobs on the Alibaba trace as to be useful for training sequential (sequence-based) models.
+
+\begin{table}[H]
+\centering
+\caption[Results for Experiment E]{Experiment E: temporal DL models using a sliding-window sequence length of 10, using numeric features only.}
+\label{tab:expe-full}
+\begin{tabular}{lrrrrr}
+\hline
+\textbf{Model} & \textbf{MAE (s)} & \textbf{MedAE (s)} & \textbf{RMSE (s)} & \textbf{MAPE (\%)} & \textbf{R\textsuperscript{2}} \\ 
+\hline
+LSTM            & 6{,}923 & 4{,}379 & 15{,}627 & 27.64 & $-$0.01 \\ 
+CNN             & 8{,}512 & 6{,}624 & 15{,}712 & 45.20 & $-$0.02 \\ 
+CNN-LSTM Hybrid & 8{,}907 & 7{,}269 & 15{,}723 & 49.07 & $-$0.02 \\ 
+\hline
+\end{tabular}
+\end{table}
+
+\clearpage
+\section{Experiment F: Temporal Deep Learning, Categorical Features}
+
+Table~\ref{tab:expf-full} shows the outcomes for Experiment F. Experiment F represents a mix of the two worst aspects of Experiments D and E: the categorical feature set is high dimensional while the sequencing frame is identical to that of Experiment E. As expected in this case, CNN performs slightly better than it did on Experiment D using the categorical features ($R^2 = .04$). However, LSTM performed significantly worse than in Experiment D ($R^2 = -0.27$; MAPE = 85.66\%). These outcomes indicate that the increased training time caused by the expanded dimensionality of the categorical feature set adversely impacts LSTM optimization. In addition, the CNN-LSTM hybrid also performed worse when compared to Experiment E.
+
+\begin{table}[H]
+\centering
+\caption[Results for Experiment F]{Experiment F: temporal DL models using a sliding-window sequence length of 10, using One-Hot encoding for categorical features.}
+\label{tab:expf-full}
+\begin{tabular}{lrrrrr}
+\hline
+\textbf{Model} & \textbf{MAE (s)} & \textbf{MedAE (s)} & \textbf{RMSE (s)} & \textbf{MAPE (\%)} & \textbf{R\textsuperscript{2}} \\ 
+\hline
+CNN             & 6{,}704 & 3{,}794 & 15{,}285 & 25.23 & 0.04 \\ 
+CNN-LSTM Hybrid & 10{,}212 & 9{,}693 & 16{,}083 & 61.12 & $-$0.07 \\ 
+LSTM            & 13{,}169 & 13{,}582 & 17{,}562 & 85.66 & $-$0.27 \\ 
+\hline
+\end{tabular}
+\end{table}

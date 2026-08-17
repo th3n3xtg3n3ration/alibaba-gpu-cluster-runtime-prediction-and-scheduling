@@ -1,0 +1,375 @@
+<html><head><style>table{border-collapse:collapse;font-family:Arial,sans-serif;font-size:12px} td,th{border:1px solid #ccc;padding:6px 10px} th{background:#f0f0f0}</style></head><body><div>
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>Policy / Architecture</th>
+      <th>Mean Wait (s)</th>
+      <th>Median Wait (s)</th>
+      <th>P95 Wait (s)</th>
+      <th>Mean JCT (s)</th>
+      <th>Max JCT (s)</th>
+      <th>Slowdown</th>
+      <th>Model MAE (s)</th>
+      <th>Model MdAE (s)</th>
+      <th>Model RMSE (s)</th>
+      <th>Model MAPE (%)</th>
+      <th>Model R²</th>
+      <th>JCT Improvement %</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>SJF-Oracle</td>
+      <td>8476.88</td>
+      <td>16.9</td>
+      <td>44554.98</td>
+      <td>14506.62</td>
+      <td>468761.5</td>
+      <td>1.64</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>71.21</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>SJF-LSTM (Categorical)</td>
+      <td>15507.92</td>
+      <td>3538.4</td>
+      <td>62514.52</td>
+      <td>21537.66</td>
+      <td>348247.0</td>
+      <td>51.46</td>
+      <td>7181.92</td>
+      <td>3945.01</td>
+      <td>15403.21</td>
+      <td>2050.63</td>
+      <td>0.02</td>
+      <td>57.25</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>SJF-CNN-LSTM (Categorical)</td>
+      <td>16402.10</td>
+      <td>3157.0</td>
+      <td>67235.32</td>
+      <td>22431.84</td>
+      <td>341134.9</td>
+      <td>51.54</td>
+      <td>6619.07</td>
+      <td>3607.06</td>
+      <td>14702.49</td>
+      <td>2232.74</td>
+      <td>0.11</td>
+      <td>55.48</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>SJF-RF (Categorical)</td>
+      <td>17104.02</td>
+      <td>1001.2</td>
+      <td>70575.62</td>
+      <td>23133.77</td>
+      <td>374007.2</td>
+      <td>55.28</td>
+      <td>7087.14</td>
+      <td>2366.31</td>
+      <td>15167.69</td>
+      <td>3090.09</td>
+      <td>0.05</td>
+      <td>54.09</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>SJF-XGBoost (Categorical)</td>
+      <td>17189.87</td>
+      <td>1643.5</td>
+      <td>63808.54</td>
+      <td>23219.61</td>
+      <td>400792.6</td>
+      <td>55.44</td>
+      <td>6909.33</td>
+      <td>3128.06</td>
+      <td>14443.47</td>
+      <td>2631.31</td>
+      <td>0.14</td>
+      <td>53.92</td>
+    </tr>
+    <tr>
+      <th>5</th>
+      <td>SJF-LGBM (Categorical)</td>
+      <td>17694.54</td>
+      <td>2164.9</td>
+      <td>66119.50</td>
+      <td>23724.29</td>
+      <td>377568.4</td>
+      <td>58.95</td>
+      <td>6352.28</td>
+      <td>3004.78</td>
+      <td>13958.27</td>
+      <td>2121.84</td>
+      <td>0.20</td>
+      <td>52.92</td>
+    </tr>
+    <tr>
+      <th>6</th>
+      <td>SJF-CNN (Categorical)</td>
+      <td>17853.52</td>
+      <td>11676.1</td>
+      <td>64548.90</td>
+      <td>23883.27</td>
+      <td>336916.7</td>
+      <td>75.35</td>
+      <td>6958.56</td>
+      <td>3757.63</td>
+      <td>15017.95</td>
+      <td>2461.05</td>
+      <td>0.07</td>
+      <td>52.60</td>
+    </tr>
+    <tr>
+      <th>7</th>
+      <td>SJF-LGBM (Numeric)</td>
+      <td>20147.62</td>
+      <td>7698.3</td>
+      <td>76379.14</td>
+      <td>26177.37</td>
+      <td>358017.9</td>
+      <td>91.10</td>
+      <td>7631.43</td>
+      <td>3984.64</td>
+      <td>15883.83</td>
+      <td>3053.49</td>
+      <td>-0.04</td>
+      <td>48.05</td>
+    </tr>
+    <tr>
+      <th>8</th>
+      <td>SJF-CNN-LSTM (Numeric)</td>
+      <td>20406.89</td>
+      <td>6377.3</td>
+      <td>77246.48</td>
+      <td>26436.64</td>
+      <td>335266.3</td>
+      <td>75.59</td>
+      <td>7019.54</td>
+      <td>4359.07</td>
+      <td>15399.53</td>
+      <td>2870.20</td>
+      <td>0.02</td>
+      <td>47.53</td>
+    </tr>
+    <tr>
+      <th>9</th>
+      <td>SJF-LSTM (Numeric)</td>
+      <td>21256.81</td>
+      <td>8284.8</td>
+      <td>76265.46</td>
+      <td>27286.55</td>
+      <td>368543.8</td>
+      <td>122.82</td>
+      <td>8184.20</td>
+      <td>6442.28</td>
+      <td>15561.75</td>
+      <td>4216.12</td>
+      <td>0.00</td>
+      <td>45.85</td>
+    </tr>
+    <tr>
+      <th>10</th>
+      <td>SJF-CNN-LSTM (Categorical Sequence)</td>
+      <td>24435.68</td>
+      <td>11518.3</td>
+      <td>112012.18</td>
+      <td>30465.43</td>
+      <td>344517.3</td>
+      <td>94.67</td>
+      <td>10212.44</td>
+      <td>9692.54</td>
+      <td>16082.65</td>
+      <td>6112.11</td>
+      <td>-0.07</td>
+      <td>39.54</td>
+    </tr>
+    <tr>
+      <th>11</th>
+      <td>SJF-CNN (Numeric)</td>
+      <td>24469.21</td>
+      <td>15080.8</td>
+      <td>76843.24</td>
+      <td>30498.96</td>
+      <td>376321.3</td>
+      <td>142.56</td>
+      <td>6467.85</td>
+      <td>3169.88</td>
+      <td>15716.82</td>
+      <td>1868.70</td>
+      <td>-0.02</td>
+      <td>39.47</td>
+    </tr>
+    <tr>
+      <th>12</th>
+      <td>SJF-XGBoost (Numeric)</td>
+      <td>24512.39</td>
+      <td>14738.4</td>
+      <td>76042.74</td>
+      <td>30542.14</td>
+      <td>348210.5</td>
+      <td>129.70</td>
+      <td>8313.89</td>
+      <td>5305.08</td>
+      <td>15792.45</td>
+      <td>4015.49</td>
+      <td>-0.03</td>
+      <td>39.38</td>
+    </tr>
+    <tr>
+      <th>13</th>
+      <td>SJF-CNN-LSTM (Numeric Sequence)</td>
+      <td>28948.43</td>
+      <td>24153.7</td>
+      <td>77226.14</td>
+      <td>34978.18</td>
+      <td>364896.6</td>
+      <td>173.68</td>
+      <td>8907.24</td>
+      <td>7269.81</td>
+      <td>15723.12</td>
+      <td>4907.02</td>
+      <td>-0.02</td>
+      <td>30.58</td>
+    </tr>
+    <tr>
+      <th>14</th>
+      <td>SRF (Heuristic)</td>
+      <td>29424.61</td>
+      <td>16404.7</td>
+      <td>76547.72</td>
+      <td>35454.36</td>
+      <td>327412.5</td>
+      <td>219.05</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>29.64</td>
+    </tr>
+    <tr>
+      <th>15</th>
+      <td>SJF-LSTM (Categorical Sequence)</td>
+      <td>30189.30</td>
+      <td>19973.5</td>
+      <td>86986.02</td>
+      <td>36219.05</td>
+      <td>354162.2</td>
+      <td>196.91</td>
+      <td>13169.47</td>
+      <td>13582.38</td>
+      <td>17562.29</td>
+      <td>8566.33</td>
+      <td>-0.27</td>
+      <td>28.12</td>
+    </tr>
+    <tr>
+      <th>16</th>
+      <td>SJF-RF (Numeric)</td>
+      <td>38233.07</td>
+      <td>41649.4</td>
+      <td>70931.10</td>
+      <td>44262.82</td>
+      <td>368850.4</td>
+      <td>262.31</td>
+      <td>16968.85</td>
+      <td>15596.85</td>
+      <td>21531.71</td>
+      <td>12210.27</td>
+      <td>-0.91</td>
+      <td>12.15</td>
+    </tr>
+    <tr>
+      <th>17</th>
+      <td>SJF-CNN (Categorical Sequence)</td>
+      <td>39395.39</td>
+      <td>21764.2</td>
+      <td>115912.80</td>
+      <td>45425.14</td>
+      <td>432879.7</td>
+      <td>198.27</td>
+      <td>6705.79</td>
+      <td>3795.68</td>
+      <td>15285.58</td>
+      <td>2524.29</td>
+      <td>0.04</td>
+      <td>9.85</td>
+    </tr>
+    <tr>
+      <th>18</th>
+      <td>FIFO</td>
+      <td>44356.62</td>
+      <td>27901.7</td>
+      <td>123407.12</td>
+      <td>50386.37</td>
+      <td>345659.7</td>
+      <td>260.01</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>0.00</td>
+    </tr>
+    <tr>
+      <th>19</th>
+      <td>SJF-CNN (Numeric Sequence)</td>
+      <td>46425.84</td>
+      <td>42366.8</td>
+      <td>120565.54</td>
+      <td>52455.59</td>
+      <td>376336.4</td>
+      <td>294.17</td>
+      <td>8511.96</td>
+      <td>6625.18</td>
+      <td>15711.96</td>
+      <td>4519.96</td>
+      <td>-0.02</td>
+      <td>-4.11</td>
+    </tr>
+    <tr>
+      <th>20</th>
+      <td>SJF-LSTM (Numeric Sequence)</td>
+      <td>67236.92</td>
+      <td>74734.0</td>
+      <td>116380.36</td>
+      <td>73266.67</td>
+      <td>437755.6</td>
+      <td>397.37</td>
+      <td>6923.04</td>
+      <td>4378.99</td>
+      <td>15626.87</td>
+      <td>2763.91</td>
+      <td>-0.01</td>
+      <td>-45.41</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+</div></body></html>

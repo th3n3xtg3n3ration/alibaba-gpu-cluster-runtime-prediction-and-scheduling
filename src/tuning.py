@@ -1422,8 +1422,7 @@ def finalize_dl_model(model_name, best_params, train_dataset, val_dataset, input
     preds_scaled = np.array(preds_scaled)
     preds_unscaled = np.maximum(scaler_y.inverse_transform(preds_scaled.reshape(-1, 1)).flatten(), 0)
         
-    mae = mean_absolute_error(y_test_raw, preds_unscaled)
-    rmse = np.sqrt(mean_squared_error(y_test_raw, preds_unscaled))
-    r2 = r2_score(y_test_raw, preds_unscaled)
+    metrics = evaluate_regression(y_test_raw, preds_unscaled)
+    metrics['train_time'] = train_time
     
-    return final_model, {'mae': mae, 'rmse': rmse, 'r2': r2, 'train_time': train_time}
+    return final_model, metrics

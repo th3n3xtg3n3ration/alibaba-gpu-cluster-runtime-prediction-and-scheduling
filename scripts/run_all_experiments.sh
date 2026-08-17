@@ -1,38 +1,101 @@
 #!/usr/bin/env bash
-# ============================================================
-#  run_all_experiments.sh
-#  ------------------------------------------------------------
-#  Automated pipeline for thesis experiments and visualization.
+# ==============================================================================
+#  Alibaba GPU Runtime Prediction & Scheduling Thesis Pipeline
+# ==============================================================================
+#  Automated execution and artifact export script.
 #
 #  Usage:
-#    bash scripts/run_all_experiments.sh [all|workload|models|scheduler]
+#    bash scripts/run_all_experiments.sh [all|export|test|run|force|tr]
 #
-#  The MODE argument defaults to "all".
-# ============================================================
+#  Options:
+#    all     : (Default) Runs unit tests and extracts all thesis figures & tables.
+#    export  : Fast export (<1s) of figures & tables from existing notebook outputs.
+#    test    : Runs the automated Python unit test suite (tests/).
+#    run     : Runs notebooks if outputs are missing, then exports results.
+#    force   : Forces complete re-execution of all research notebooks from scratch.
+#    tr      : Exports results from Turkish notebooks (notebooks/tr/).
+# ==============================================================================
 
 set -euo pipefail
 
-# Derive project root robustly from script location
+# ANSI Colors
+BOLD="\033[1m"
+GREEN="\033[0;32m"
+BLUE="\033[0;34m"
+CYAN="\033[0;36m"
+YELLOW="\033[1;33m"
+RESET="\033[0m"
+
+# Project Paths
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
-
-# Change into the project root so all relative paths resolve correctly
 cd "$PROJECT_ROOT"
 
-# Configuration
 MODE="${1:-all}"
 
-echo "[Pipeline] Starting Thesis Experimental Pipeline (Mode: $MODE)"
-echo "[Pipeline] Project root: $PROJECT_ROOT"
+echo -e "${BOLD}${BLUE}==============================================================================${RESET}"
+echo -e "${BOLD}${BLUE}  ALIBABA GPU RUNTIME PREDICTION & SCHEDULING RESEARCH PIPELINE${RESET}"
+echo -e "${BOLD}${BLUE}==============================================================================${RESET}"
+echo -e "${CYAN}📁 Project Root :${RESET} $PROJECT_ROOT"
+echo -e "${CYAN}⚙️  Pipeline Mode:${RESET} ${BOLD}$MODE${RESET}\n"
 
-if [ "$MODE" == "test" ]; then
-    echo "[Pipeline] Running Unit Tests..."
-    # Always use the specific python version identified for this project
-    python3 -m unittest discover tests
-    exit 0
-fi
+case "$MODE" in
+    test)
+        echo -e "${BOLD}${YELLOW}▶ [Step 1/1] Running Automated Unit Tests...${RESET}"
+        python3 -m unittest discover tests
+        echo -e "\n${BOLD}${GREEN}✅ All unit tests passed successfully!${RESET}"
+        ;;
 
-# Step 1: Generate visualizations
-python scripts/generate_all_figures.py --mode "$MODE"
+    export)
+        echo -e "${BOLD}${YELLOW}▶ [Step 1/1] Fast Exporting Figures & Tables from Notebooks...${RESET}"
+        python3 scripts/export_thesis_results.py
+        echo -e "\n${BOLD}${GREEN}✅ Export complete. Artifacts saved in results/figures/thesis_export/${RESET}"
+        ;;
 
-echo "[Pipeline] Done. Results are in results/figures/"
+    run|execute)
+        echo -e "${BOLD}${YELLOW}▶ [Step 1/1] Auto-Executing Notebooks & Exporting Results...${RESET}"
+        python3 scripts/export_thesis_results.py --execute
+        echo -e "\n${BOLD}${GREEN}✅ Execution & export complete!${RESET}"
+        ;;
+
+    force)
+        echo -e "${BOLD}${YELLOW}▶ [Step 1/1] Force Re-Executing All Notebooks from Scratch...${RESET}"
+        python3 scripts/export_thesis_results.py --force-execute
+        echo -e "\n${BOLD}${GREEN}✅ Complete pipeline re-run & export finished!${RESET}"
+        ;;
+
+    tr)
+        echo -e "${BOLD}${YELLOW}▶ [Step 1/1] Exporting from Turkish Notebooks (notebooks/tr/)...${RESET}"
+        python3 scripts/export_thesis_results.py --lang tr
+        echo -e "\n${BOLD}${GREEN}✅ Turkish notebook results exported successfully!${RESET}"
+        ;;
+
+    all)
+        echo -e "${BOLD}${YELLOW}▶ [Step 1/2] Quality Assurance (Unit Tests)...${RESET}"
+        python3 -m unittest discover tests
+
+        echo -e "\n${BOLD}${YELLOW}▶ [Step 2/2] Extracting Thesis Figures & Tables...${RESET}"
+        python3 scripts/export_thesis_results.py
+
+        echo -e "\n${BOLD}${BLUE}==============================================================================${RESET}"
+        echo -e "${BOLD}${GREEN}🎉 PIPELINE COMPLETED SUCCESSFULLY!${RESET}"
+        echo -e "  📊 PNG Figures  : results/figures/thesis_export/png/"
+        echo -e "  📋 HTML Tables  : results/figures/thesis_export/html/"
+        echo -e "${BOLD}${BLUE}==============================================================================${RESET}"
+        ;;
+
+    -h|--help|help)
+        echo -e "Available commands:"
+        echo -e "  bash scripts/run_all_experiments.sh         # Runs unit tests + fast export"
+        echo -e "  bash scripts/run_all_experiments.sh export  # Fast export (<1s)"
+        echo -e "  bash scripts/run_all_experiments.sh test    # Run unit tests only"
+        echo -e "  bash scripts/run_all_experiments.sh run     # Auto-run unexecuted notebooks"
+        echo -e "  bash scripts/run_all_experiments.sh force   # Force re-run all notebooks"
+        echo -e "  bash scripts/run_all_experiments.sh tr      # Export from Turkish notebooks"
+        ;;
+
+    *)
+        echo -e "${YELLOW}Unknown mode: '$MODE'. Defaulting to fast export...${RESET}"
+        python3 scripts/export_thesis_results.py
+        ;;
+esac

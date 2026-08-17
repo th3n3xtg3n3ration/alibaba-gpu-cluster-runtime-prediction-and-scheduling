@@ -1,0 +1,87 @@
+% load the thesis class (default is msc)
+% \documentclass{thesis}
+
+% msc, phd, proposal, and followup options are also available
+\documentclass[msc]{thesis}
+\usepackage{needspace}
+\usepackage{pdflscape}
+\usepackage{float}
+\usepackage{xurl}
+\usepackage{algpseudocode}  % for algorithmic pseudocode (algorithmicx)
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric, arrows.meta, positioning}
+% \documentclass[llm]{thesis}
+% \documentclass[proposal]{thesis}
+% \documentclass[followup]{thesis}
+
+% default algorithm typesetting package is algpseudocode
+% you can use algorithm2e option to load the algorithm2e package
+% \documentclass[algorithm2e,phd]{thesis}
+
+% write your thesis title
+\title{Multi-Paradigm Runtime Prediction and Heterogeneous Scheduling Optimization in Large-Scale GPU Clusters}
+
+% write your thesis title in Turkish
+\turkishtitle{BÜYÜK ÖLÇEKLİ GPU KÜMELERİNDE ÇOKLU PARADİGMA ÇALIŞMA ZAMANI TAHMİNİ VE HETEROJEN ÇİZELGELEME OPTİMİZASYONU}
+
+% first letter of name and surname is uppercase
+% other letters are lowercase
+\author{Hasan Uğur Çelebi}
+
+% write your department
+\department{Data Science}
+
+
+% Uncomment the correct degree:
+\degree{Master of Science}
+% \degree{Doctor of Philosophy}
+% \degree{Master of Business Administration}
+% \degree{Master of Arts}
+% \degree{Master of Laws}
+% \degree{Master of Education}
+% \degree{Master of Architecture}
+
+% write your thesis year or full date if phd proposal/follow-up report
+\date{2026}
+%\date{February 20\textsuperscript{th}, 2024}
+
+% write your student number for PhD Proposal
+%\studentnumber{12345678}
+
+% write your supervisors, co-supervisor(s), examiners
+% and their respective universities
+\supervisor{Dr. Onur Demir}{Yeditepe University}
+% \cosupervisori{Assoc. Prof. Dr. Name Surname}{Yeditepe University}
+% \cosupervisorii{Assoc. Prof. Dr. Name Surname}{Yeditepe University}
+\examineri{Prof. Dr. Name Surname}{Yeditepe University}   % TODO: replace with real examiner name
+\examinerii{Assoc. Prof. Dr. Name Surname}{Yeditepe University} % TODO: replace with real examiner name
+% \examineriii{Assist. Prof. Dr. Name Surname}{Yeditepe University}
+% \examineriv{Assist. Prof. Dr. Name Surname}{Yeditepe University}
+% \examinerv{Assist. Prof. Dr. Name Surname}{Yeditepe University}
+
+% document body
+\begin{document}
+
+% make the cover page, approval, etc.
+\MakeFrontMatter
+
+% introduction
+\input{chapters/1.introduction}
+
+% chapters in the thesis body
+\input{chapters/2.background}
+\input{chapters/3.dataset_and_workload}
+\input{chapters/4.prediction_models}
+\input{chapters/5.simulation_framework}
+
+% conclusions
+\input{chapters/6.results_and_discussion}
+\input{chapters/7.conclusions_and_future_work}
+
+% references
+\MakeReferences
+
+% appendices
+\input{chapters/appendices}
+
+\end{document}
