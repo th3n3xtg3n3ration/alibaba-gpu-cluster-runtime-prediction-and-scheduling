@@ -267,6 +267,12 @@ def _load_prediction_inputs() -> tuple[np.ndarray, dict[str, np.ndarray]]:
     return y_test, predictions
 
 
+def _to_float(value: Any) -> float:
+    """Convert a numeric-looking table cell to float."""
+    cleaned = str(value).replace("%", "").replace(",", "").strip()
+    return float(cleaned)
+
+
 def _build_analysis_frame() -> pd.DataFrame:
     """Create the joined metric table for all 18 predictors."""
     paths = load_paths_config()
@@ -289,8 +295,8 @@ def _build_analysis_frame() -> pd.DataFrame:
                 "model": PLOT_LABELS[policy_name],
                 "spearman_rho": float(rho),
                 "mae": float(np.mean(np.abs(y_true - y_pred))),
-                "jct_gain_32": float(gain_32_map[policy_name]),
-                "jct_gain_256": float(gain_256_map[policy_name]),
+                "jct_gain_32": _to_float(gain_32_map[policy_name]),
+                "jct_gain_256": _to_float(gain_256_map[policy_name]),
             }
         )
 
