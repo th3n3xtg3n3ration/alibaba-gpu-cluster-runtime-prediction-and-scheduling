@@ -60,7 +60,8 @@ The experimental workflow is organized into six standardized phases, featuring p
 | **02** | [Workload Characterization](notebooks/en/02_workload_analysis.ipynb) | Arrival heatmaps and heavy-tail distribution analysis. |
 | **03** | [Feature Engineering](notebooks/en/03_feature_engineering.ipynb) | Cyclical timestamps, **One-Hot Encoding**, and resource offered-load engineering. |
 | **04** | [Predictive Modeling](notebooks/en/04_runtime_prediction_models.ipynb) | Multi-model benchmarking, hyperparameter tuning, and error topology analysis. |
-| **05** | [Scheduling Optimization (32 GPU)](notebooks/en/05_scheduler_evaluation_32_gpu.ipynb) / [256 GPU](notebooks/en/05_scheduler_evaluation_256_gpu.ipynb) | Discrete-event heterogeneous policy evaluation and JCT comparative analysis. |
+| **05 (32 GPU)** | [Scheduling Evaluation (32 GPU)](notebooks/en/05_scheduler_evaluation_32_gpu.ipynb) | Discrete-event policy evaluation under constrained cluster resources (32 GPUs). |
+| **05 (256 GPU)** | [Scheduling Evaluation (256 GPU)](notebooks/en/05_scheduler_evaluation_256_gpu.ipynb) | Scaled cluster simulation, multi-node placement, and policy ranking (256 GPUs). |
 
 *(Turkish versions are available under `notebooks/tr/`)*
 
