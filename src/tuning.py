@@ -14,6 +14,8 @@ Key Components:
   - finalize_and_evaluate_dl: Final refit and evaluation for the best DL architecture.
 """
 from __future__ import annotations
+import inspect
+from datetime import datetime, timezone
 import os
 import platform
 from pathlib import Path
@@ -50,7 +52,6 @@ from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 import gc
 import numpy as np
 import pandas as pd
-from sklearn.model_selection import train_test_split
 from src.models.evaluation import evaluate_regression
 
 # Deep Learning Imports
@@ -78,6 +79,148 @@ def get_default_device() -> str:
 # =====================================================================
 _CHECKPOINT_DIR = Path(__file__).resolve().parent.parent / "results" / "checkpoints"
 
+_FEATURE_MODE_BY_EXPERIMENT = {
+    "exp_a": "numeric_only",
+    "exp_b": "with_categorical_onehot",
+    "exp_c": "numeric_sequence",
+    "exp_d": "categorical_embedding",
+    "exp_e": "numeric_plus_sequential",
+    "exp_f": "categorical_plus_sequential",
+}
+
+
+def chronological_train_validation_split(
+    X: Union[pd.DataFrame, np.ndarray],
+    y: Union[pd.Series, np.ndarray],
+    validation_size: float = 0.15,
+) -> Tuple[Union[pd.DataFrame, np.ndarray], Union[pd.DataFrame, np.ndarray], Union[pd.Series, np.ndarray], Union[pd.Series, np.ndarray]]:
+    """
+    Split ordered training data into chronological train/validation partitions.
+
+    Parameters
+    ----------
+    X : pd.DataFrame or np.ndarray
+        Ordered feature matrix.
+    y : pd.Series or np.ndarray
+        Ordered target vector aligned with ``X``.
+    validation_size : float, default 0.15
+        Fraction of trailing samples reserved for validation.
+
+    Returns
+    -------
+    tuple
+        ``(X_train, X_val, y_train, y_val)`` preserving original order.
+
+    Raises
+    ------
+    ValueError
+        If ``validation_size`` is not strictly between 0 and 1, or if the
+        split would produce an empty train or validation partition.
+    """
+    if not 0 < validation_size < 1:
+        raise ValueError("validation_size must be strictly between 0 and 1.")
+
+    n_samples = len(X)
+    split_idx = int(n_samples * (1 - validation_size))
+    if split_idx <= 0 or split_idx >= n_samples:
+        raise ValueError("Chronological split requires at least one train and one validation sample.")
+
+    if isinstance(X, pd.DataFrame):
+        X_train = X.iloc[:split_idx].copy()
+        X_val = X.iloc[split_idx:].copy()
+    else:
+        X_train = X[:split_idx]
+        X_val = X[split_idx:]
+
+    if isinstance(y, pd.Series):
+        y_train = y.iloc[:split_idx].copy()
+        y_val = y.iloc[split_idx:].copy()
+    else:
+        y_train = y[:split_idx]
+        y_val = y[split_idx:]
+
+    return X_train, X_val, y_train, y_val
+
+
+def _infer_checkpoint_sizes(
+    experiment_name: str,
+    caller_locals: Dict[str, Any],
+) -> Tuple[Optional[int], Optional[int]]:
+    """Infer train/test sizes from notebook-local variables for checkpoint metadata."""
+    experiment_key = experiment_name.rsplit("_", maxsplit=1)[0]
+
+    size_var_pairs = {
+        "exp_a": ("y_train", "y_test"),
+        "exp_b_rf_oh": ("y_train_oh", "y_test_oh"),
+        "exp_b_xgb_oh": ("y_train_oh", "y_test_oh"),
+        "exp_b_lgbm_oh": ("y_train_oh", "y_test_oh"),
+        "exp_b_lgbm_nat": ("y_train_nat", "y_test_nat"),
+    }
+    if experiment_name in size_var_pairs:
+        train_var, test_var = size_var_pairs[experiment_name]
+        train_values = caller_locals.get(train_var)
+        test_values = caller_locals.get(test_var)
+        if train_values is not None and test_values is not None:
+            return len(train_values), len(test_values)
+
+    dataset_var_pairs = {
+        "exp_c": ("train_dataset_num", "val_dataset_num", "test_dataset_num"),
+        "exp_d": ("train_dataset_cat", "val_dataset_cat", "test_dataset_cat"),
+        "exp_e": ("train_dataset_num_seq", "val_dataset_num_seq", "test_dataset_num_seq"),
+        "exp_f": ("train_dataset_cat_seq", "val_dataset_cat_seq", "test_dataset_cat_seq"),
+    }
+    if experiment_key in dataset_var_pairs:
+        train_var, val_var, test_var = dataset_var_pairs[experiment_key]
+        train_dataset = caller_locals.get(train_var)
+        val_dataset = caller_locals.get(val_var)
+        test_dataset = caller_locals.get(test_var)
+        if train_dataset is not None and val_dataset is not None and test_dataset is not None:
+            return len(train_dataset) + len(val_dataset), len(test_dataset)
+
+    return None, None
+
+
+def _build_checkpoint_payload(
+    experiment_name: str,
+    data: Dict[str, Any],
+    caller_locals: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    """Normalize checkpoint payloads and backfill required metadata fields."""
+    clean = {}
+    for k, v in data.items():
+        if isinstance(v, dict):
+            clean[k] = {kk: float(vv) if isinstance(vv, (np.floating, np.integer)) else vv
+                        for kk, vv in v.items()}
+        elif isinstance(v, (np.floating, np.integer)):
+            clean[k] = float(v)
+        else:
+            clean[k] = v
+
+    experiment_parts = experiment_name.split("_")
+    experiment_key = "_".join(experiment_parts[:2]) if len(experiment_parts) >= 2 else experiment_name
+    model_name = "_".join(experiment_parts[2:]) if len(experiment_parts) > 2 else experiment_name
+
+    if caller_locals is None:
+        caller_locals = {}
+
+    inferred_train_size, inferred_test_size = _infer_checkpoint_sizes(experiment_name, caller_locals)
+    feature_mode = clean.get("feature_mode")
+    if feature_mode is None:
+        if experiment_name == "exp_b_lgbm_nat":
+            feature_mode = "with_categorical_native"
+        else:
+            feature_mode = _FEATURE_MODE_BY_EXPERIMENT.get(experiment_key)
+
+    clean.setdefault("experiment", experiment_key)
+    clean.setdefault("model", model_name)
+    clean.setdefault("feature_mode", feature_mode)
+    clean.setdefault("train_size", inferred_train_size)
+    clean.setdefault("test_size", inferred_test_size)
+    clean.setdefault("timestamp", datetime.now(timezone.utc).isoformat())
+    clean.setdefault("status", "complete")
+
+    return clean
+
 
 def save_checkpoint(experiment_name: str, data: Dict[str, Any]) -> Path:
     """
@@ -99,16 +242,9 @@ def save_checkpoint(experiment_name: str, data: Dict[str, Any]) -> Path:
     _CHECKPOINT_DIR.mkdir(parents=True, exist_ok=True)
     path = _CHECKPOINT_DIR / f"{experiment_name}.json"
 
-    # Convert numpy types to Python native for JSON
-    clean = {}
-    for k, v in data.items():
-        if isinstance(v, dict):
-            clean[k] = {kk: float(vv) if isinstance(vv, (np.floating, np.integer)) else vv
-                        for kk, vv in v.items()}
-        elif isinstance(v, (np.floating, np.integer)):
-            clean[k] = float(v)
-        else:
-            clean[k] = v
+    caller_frame = inspect.currentframe()
+    caller_locals = caller_frame.f_back.f_locals if caller_frame is not None and caller_frame.f_back is not None else {}
+    clean = _build_checkpoint_payload(experiment_name, data, caller_locals)
 
     with open(path, "w") as f:
         json.dump(clean, f, indent=2, default=str)
@@ -265,11 +401,10 @@ class XGBRegressorCV(xgb.XGBRegressor):
     """
     def fit(self, X, y, **fit_params):
         # Split X, y into train/validation
-        from sklearn.model_selection import train_test_split
         import gc
         
-        X_tr, X_val, y_tr, y_val = train_test_split(
-            X, y, test_size=0.15, random_state=self.random_state
+        X_tr, X_val, y_tr, y_val = chronological_train_validation_split(
+            X, y, validation_size=0.15
         )
         
         # Add eval set for early stopping
@@ -290,11 +425,10 @@ class LGBMRegressorCV(lgb.LGBMRegressor):
     LightGBM wrapper that uses early stopping during CV.
     """
     def fit(self, X, y, **fit_params):
-        from sklearn.model_selection import train_test_split
         import gc
         
-        X_tr, X_val, y_tr, y_val = train_test_split(
-            X, y, test_size=0.15, random_state=self.random_state
+        X_tr, X_val, y_tr, y_val = chronological_train_validation_split(
+            X, y, validation_size=0.15
         )
         
         # Add eval set
@@ -599,8 +733,8 @@ def finalize_ml_model(
         final_model.fit(X_train, y_train)
     else:
         # Split for internal validation to use early stopping for the final refit number of trees
-        X_tr_split, X_val_split, y_tr_split, y_val_split = train_test_split(
-            X_train, y_train, test_size=0.10, random_state=random_state
+        X_tr_split, X_val_split, y_tr_split, y_val_split = chronological_train_validation_split(
+            X_train, y_train, validation_size=0.10
         )
         
         if model_name == "xgb":
