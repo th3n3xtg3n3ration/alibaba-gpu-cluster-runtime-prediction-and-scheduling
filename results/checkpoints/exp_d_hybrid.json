@@ -1,18 +1,61 @@
 {
   "metrics": {
-    "mae": 6618.090744778347,
-    "rmse": 14702.46279098259,
-    "r2": 0.10770162586478971,
-    "mape": 22.30475019712857,
-    "mdae": 3607.06396484375,
-    "train_time": 15.83623719215393
+    "mae": 6929.094943436835,
+    "mae_std": 651.5156044153342,
+    "rmse": 14859.820527459955,
+    "rmse_std": 224.20117108592945,
+    "r2": 0.08836087498730105,
+    "r2_std": 0.027432452060432842,
+    "mape": 2356.546992963782,
+    "mape_std": 881.768749118741,
+    "mdae": 3772.2644856770835,
+    "mdae_std": 1157.605616904146,
+    "train_time": 29.932618776957195,
+    "train_time_std": 5.336614364769203,
+    "n_seeds": 3,
+    "seeds": [
+      42,
+      1337,
+      2024
+    ],
+    "mae_seed0": 7127.382496522292,
+    "rmse_seed0": 14612.980882405887,
+    "r2_seed0": 0.1185299596320748,
+    "mape_seed0": 2949.705992210675,
+    "mdae_seed0": 4297.03369140625,
+    "train_time_seed0": 23.77255606651306
   },
   "best_params": {
-    "num_filters": 128,
+    "num_filters": 256,
     "kernel_size": 1,
     "lstm_hidden_size": 128,
-    "lstm_num_layers": 2,
-    "learning_rate": 0.0012,
-    "batch_size": 612
+    "lstm_num_layers": 1,
+    "learning_rate": 0.0015,
+    "batch_size": 512,
+    "dropout": 0.2
+  },
+  "feature_mode": "categorical_embedding",
+  "train_size": 65747,
+  "test_size": 16437,
+  "experiment": "exp_d",
+  "model": "hybrid",
+  "timestamp": "2026-09-06T09:23:38.244636+00:00",
+  "status": "complete",
+  "provenance": {
+    "git_commit": "55a571f63a18b360cc2bdeb3929e01c794bb868d",
+    "src_sha256": {
+      "src/feature_engineering.py": "605f75d280da53a2fd5fa9e15b7beda56e3b90d749d7cd6614c808dcbf1d08e6",
+      "src/tuning.py": "4cdece86315a9612567ade8a1010002fb0a989cded6c0d1a972c9cbed7e8e257"
+    },
+    "data_sha256": "c1897f8341dba8552d002748565cc9d3efcac2268a5f6d7ef797e0e72b67393a",
+    "package_versions": {
+      "scikit-learn": "1.8.0",
+      "xgboost": "3.1.2",
+      "lightgbm": "4.6.0",
+      "torch": "2.11.0",
+      "numpy": "2.3.5",
+      "pandas": "2.3.3"
+    },
+    "device": "mps"
   }
 }

@@ -4,7 +4,7 @@ This section will describe the ML and DL models that have been developed for pre
 
 We ran six experiments using a systematic ablation design as presented in Table~\ref{tab:experiments}. The ablation design allows us to study the individual effects of three factors that determine which model architecture performs best: model family (static DL, temporal DL vs.\ ML), feature set (categorical-augmented vs.\ numeric-only), and input framing (sliding-window sequence vs.\ independent rows). We fixed one or more aspects of the design to evaluate the contribution to predictive accuracy from each factor in each experiment.
 
-The cleaned dataset of 82,184 jobs was split chronologically into 80\% for training (65,747 jobs) and 20\% for testing (16,437 jobs) as discussed in Chapter~\ref{chp:dataset}. The objective function is the raw job runtime in seconds ($y$). All experiments involving only numeric features (Experiments~A, C, E) utilized nine features ($d=9$). Experiments using categorical features with One-Hot encoding (Experiments~B, D, F) expanded the feature space to 591 dimensions ($d=591$) due to the addition of categorical representations for \texttt{user} and \texttt{gpu\_type}. LGBM can handle native categorical variables, so it was able to utilize eleven features ($d=11$) in Experiment~B.
+The cleaned dataset of 82,184 jobs was split chronologically into 80\% for training (65,747 jobs) and 20\% for testing (16,437 jobs) as discussed in Chapter~\ref{chp:dataset}. The objective function is the raw job runtime in seconds ($y$). All experiments involving only numeric features (Experiments~A, C, E) utilized nine features ($d=9$). Experiments using categorical features with One-Hot encoding (Experiments~B, D, F) expanded the feature space to 591 dimensions ($d=591$) due to the addition of categorical representations for \texttt{user} and \texttt{gpu\_type}. LightGBM can handle native categorical variables, so it was able to utilize eleven features ($d=11$) in Experiment~B.
 
 \begin{table}[htbp]
 \centering
@@ -15,14 +15,14 @@ The cleaned dataset of 82,184 jobs was split chronologically into 80\% for train
 \hline
 \textbf{Exp} & \textbf{Model Family} & \textbf{Model} & \textbf{Feature Set} & \textbf{Input Framing} \\
 \hline
-\multirow{3}{*}{A} & \multirow{3}{*}{ML} & RF & \multirow{3}{*}{Numeric only} & \multirow{3}{*}{Independent rows} \\
-                   &                     & XGB       &                               & \\
-                   &                     & LGBM      &                               & \\
+\multirow{3}{*}{A} & \multirow{3}{*}{ML} & Random Forest & \multirow{3}{*}{Numeric only} & \multirow{3}{*}{Independent rows} \\
+                   &                     & XGBoost       &                               & \\
+                   &                     & LightGBM      &                               & \\
 \hline
-\multirow{4}{*}{B} & \multirow{4}{*}{ML} & RF & \multirow{4}{*}{Numeric + Categorical} & \multirow{4}{*}{Independent rows} \\
-                   &                     & XGB       &                               & \\
-                   &                     & LGBM (Native)&                               & \\
-                   &                     & LGBM (One-Hot)&                               & \\
+\multirow{4}{*}{B} & \multirow{4}{*}{ML} & Random Forest & \multirow{4}{*}{Numeric + Categorical} & \multirow{4}{*}{Independent rows} \\
+                   &                     & XGBoost       &                               & \\
+                   &                     & LightGBM (Native)&                               & \\
+                   &                     & LightGBM (One-Hot)&                               & \\
 \hline
 \multirow{3}{*}{C} & \multirow{3}{*}{DL} & CNN    & \multirow{3}{*}{Numeric only} & \multirow{3}{*}{Sliding window ($w=1$)} \\
                    &                     & LSTM   &                               & \\
@@ -61,29 +61,29 @@ Note that each model is designed to output the predicted runtime, $y$, directly 
 
 However, this section also highlights a critical distinction regarding how the predictive objectives defined above relate to the ultimate scheduling objective. Under the PtO framework, the best model $f^*$ (the one that produces the minimum value of the loss function $\mathcal{L}$) is assumed to be the model that will result in optimal system-level scheduling metrics (like JCT).
 
-This thesis challenges this assumption specifically whether minimizing a statistical loss like MAE strictly guarantees superior scheduling outcomes by formally defining what it means to train models under PtO assumptions, and then comparing these models against each other in Chapter~\ref{chp:results}.
+This thesis challenges this assumption, specifically whether minimizing a statistical loss like MAE strictly guarantees superior scheduling outcomes, by formally defining what it means to train models under PtO assumptions, and then comparing these models against each other in Chapter~\ref{chp:results}.
 
 \needspace{5\baselineskip}
 \section{Traditional Machine Learning Models}
 \label{sec:treebased}
 
-\subsection{RF}
+\subsection{Random Forest}
 
-RF~\cite{breiman2001random} assembles multiple decision trees that are individually built from bootstrap samples of the training data. For each decision node in a tree, only a randomly sampled set of features is evaluated to create uncorrelated trees and decrease the total variance of the RF model's predictions. Averaging over all trees produces the final prediction for new examples.
+Random Forest (RF)~\cite{breiman2001random} assembles multiple decision trees that are individually built from bootstrap samples of the training data. For each decision node in a tree, only a randomly sampled set of features is evaluated to create uncorrelated trees and decrease the total variance of the RF model's predictions. Averaging over all trees produces the final prediction for new examples.
 
 Hyperparameters (i.e., the number of estimators to combine, the maximum depth of each tree, and the fraction of features to consider when splitting at a given node) were searched over using a staged evaluation process. The optimal combination, found using a validation set, is shown in Table~\ref{tab:hyperparams}.
 
-\subsection{XGB}
+\subsection{XGBoost}
 
-XGB~\cite{chen2016xgboost} employs gradient boosting: one by one, additional decision trees are generated for an ensemble using the residual values of the previously generated ensemble as input. In addition to this standard technique, XGB uses both $L_1$ and $L_2$ regularization terms when generating trees; these help control overfitting due to feature noise, thereby allowing XGB to be used in conjunction with noisy data, whereas unregularized gradient boosting models cannot be so easily utilized.
+XGBoost (XGB)~\cite{chen2016xgboost} employs gradient boosting: one by one, additional decision trees are generated for an ensemble using the residual values of the previously generated ensemble as input. In addition to this standard technique, XGBoost uses both $L_1$ and $L_2$ regularization terms when generating trees; these help control overfitting due to feature noise, thereby allowing XGBoost to be used in conjunction with noisy data, whereas unregularized gradient boosting models cannot be so easily utilized.
 
 A multi-stage search process was employed to find appropriate hyperparameter configurations to optimize predictive performance. Specifically, the search explored optimal combinations of the number of boosting iterations, learning rate, maximum tree depth, and $L_1$/$L_2$ regularization parameters. Early stopping was also applied during training to avoid overfitting: training was halted once it became apparent that performance on the validation set had ceased improving after a predetermined number of consecutive iterations. The optimal configuration found through this search process is detailed in Table~\ref{tab:hyperparams}.
 
-\subsection{LGBM}
+\subsection{LightGBM}
 
-LGBM~\cite{ke2017lightgbm} accelerates gradient boosting through two core methods: GOSS, which allows LGBM to focus computation on those training examples with the largest gradients; and EFB, which takes advantage of the sparsity of feature matrices to reduce the number of effective features. When combined, the above approaches enable training speeds much greater than XGB when working with very large datasets. Accuracy was found to be similar or better compared to XGB.
+LightGBM (LGBM)~\cite{ke2017lightgbm} accelerates gradient boosting through two core methods: Gradient-based One-Side Sampling (GOSS) and Exclusive Feature Bundling (EFB). GOSS randomly samples a subset of the examples that have a weak gradient. EFB bundles sparse features into a single feature if they can never be simultaneously non-zero. When combined, the above approaches enable training speeds much greater than XGBoost when working with very large datasets. Accuracy was found to be similar or better compared to XGBoost.
 
-All hyperparameters were tuned to optimize performance using a multi-stage process identical to that of XGB, including the use of early stopping. The final configuration is shown in Table~\ref{tab:hyperparams}.
+All hyperparameters were tuned to optimize performance using a multi-stage process identical to that of XGBoost, including the use of early stopping. The final configuration is shown in Table~\ref{tab:hyperparams}.
 
 \needspace{5\baselineskip}
 \section{Deep Learning Models}
@@ -114,14 +114,14 @@ where $\sigma$ denotes the sigmoid activation function, and $\odot$ denotes elem
 
 For this thesis, the LSTM model consisted of multiple LSTM layers (stacked), with dropout regularization and a linear output layer. We have experimented with varying parameters, including numbers of hidden units, number of layers, and window sizes ($w$) for all experiments, and chose our best hyperparameters using a hyperparameter search. Our optimal configurations can be seen in Table~\ref{tab:hyperparams}.
 
-The internal gates used in LSTMs provide protection against the vanishing gradient problem typical of standard RNNs. In addition to this, the cell state $\mathbf{c}_t$ serves as an internal memory "conveyor belt", allowing the network to extract the long-term effect of large-scale distributed training tasks. Also, the forget gate $\mathbf{f}_t$ provides the network with the ability to remove any previous information deemed as irrelevant due to rapid changes in cluster workloads. However, there was significant computation involved during the training of the LSTMs on sparse tabular data which had been inflated by One-Hot encoding; therefore, aggressive dropout regularization was required to obtain robust temporal representations.
+The internal gates used in LSTMs provide protection against the vanishing gradient problem typical of standard RNNs. In addition to this, the cell state $\mathbf{c}_t$ serves as an internal memory ``conveyor belt'', allowing the network to extract the long-term effect of large-scale distributed training tasks. Also, the forget gate $\mathbf{f}_t$ provides the network with the ability to remove any previous information deemed as irrelevant due to rapid changes in cluster workloads. However, there was significant computation involved during the training of the LSTMs on sparse tabular data which had been inflated by One-Hot encoding; therefore, aggressive dropout regularization was required to obtain robust temporal representations.
 
 \clearpage
 \subsection{1D-CNN}
 
 The 1D-CNN applies learnable convolutional filters to the input sequence (across its time dimension). Each filter finds a specific local pattern within the sequence; multiple filters can be used in parallel. After applying all filters, the produced feature maps go through a global average pooling layer that reduces the temporal features of the sequence into a fixed-size vector. Finally, an output layer with a fully connected structure is applied to this vector.
 
-Each block of the architecture contains a 1D convolutional layer followed by a batch normalisation layer and a ReLU activation function. Following each block, there is also a dropout layer and then a global average pooling layer. The number of filters, kernel sizes, and window size $w$ were determined separately for each experiment via a hyperparameter search. All final configuration parameters can be found in Table~\ref{tab:hyperparams}.
+Each block of the architecture contains a 1D convolutional layer followed by a batch normalization layer and a ReLU activation function. Following each block, there is also a dropout layer and then a global average pooling layer. The number of filters, kernel sizes, and window size $w$ were determined separately for each experiment via a hyperparameter search. All final configuration parameters can be found in Table~\ref{tab:hyperparams}.
 
 \subsection{CNN-LSTM Hybrid}
 
@@ -138,9 +138,9 @@ Also, since pure LSTMs tend to be sensitive to high-frequency noise present in s
 
 \subsection{Data Splitting}
 
-The training and test splits were made from the dataset so that no information was carried through from the training into the test set which would have allowed for "data leakage", according to Chapter~\ref{chp:dataset}. Therefore, the first 80\% of jobs, or 65,747 samples, ordered by submission time formed the training set. The last 20\% of jobs, or 16,437 samples, formed the test set. Validation was performed internally using cross-validation on the training set when building tree-based models. When developing DL models, an additional 20\% of the training set was withheld and used as a validation set for early stopping and hyperparameter optimization. The test set was only used at the end of the process once all model selection had been completed.
+The training and test splits were made from the dataset so that no information was carried through from the training into the test set which would have allowed for ``data leakage'', according to Chapter~\ref{chp:dataset}. Therefore, the first 80\% of jobs, or 65,747 samples, ordered by submission time formed the training set. The last 20\% of jobs, or 16,437 samples, formed the test set. Validation was performed internally using cross-validation on the training set when building tree-based models. When developing DL models, an additional 20\% of the training set was withheld and used as a validation set for early stopping and hyperparameter optimization. The test set was only used at the end of the process once all model selection had been completed.
 
-Enforcing a strict temporal split, as opposed to utilizing a randomized $k$-fold cross-validation methodology, is a fundamental requirement in order to ensure accurate workload prediction. Workloads on real-world GPU clusters are continuously subject to \textit{concept drift}, i.e., changes in the underlying distributions of job types, user behavior, and available hardware occur with respect to time. Thus, a randomization of the split would inherently provide a mechanism whereby the model could be trained on future states of the cluster in order to predict prior event(s), thereby directly violating the fundamental concept of time's arrow, and providing overly optimiztic performance estimates (due to data leakage). As such, our evaluation methodology provides an accurate representation of how a scheduler will actually be deployed in practice, wherein it can utilize previous knowledge to predict previously unknown future jobs.
+Enforcing a strict temporal split, as opposed to utilizing a randomized $k$-fold cross-validation methodology, is a fundamental requirement in order to ensure accurate workload prediction. Workloads on real-world GPU clusters are continuously subject to \textit{concept drift}, i.e., changes in the underlying distributions of job types, user behavior, and available hardware occur with respect to time. Thus, a randomization of the split would inherently provide a mechanism whereby the model could be trained on future states of the cluster in order to predict prior event(s), thereby directly violating the fundamental concept of time's arrow, and providing overly optimistic performance estimates (due to data leakage). As such, our evaluation methodology provides an accurate representation of how a scheduler will actually be deployed in practice, wherein it can utilize previous knowledge to predict previously unknown future jobs.
 
 \clearpage
 
@@ -153,22 +153,22 @@ Model performance is evaluated with five metrics, each calculated from the non-t
     \item \textit{\textbf{RMSE}:} Square root of the average squared difference. RMSE is more sensitive to extreme outliers because of its sensitivity to the heavy tail of the execution time distribution.
     \item \textit{\textbf{R\textsuperscript{2}} (Coefficient of Determination):} Proportion of variance in true execution time explained by the model. If R\textsuperscript{2} = 1.0, then there is a perfect fit; if R\textsuperscript{2} = 0.0, then the model does no better than predicting the mean.
     \item \textit{\textbf{MedAE}:} Median of absolute errors. This is completely insensitive to outliers and reflects the most common absolute error.
-    \item \textit{\textbf{Mean Absolute Percentage Error (MAPE)}:} Average of absolute percentage errors. MAPE provides a very good measure of relative error, especially when comparing predictions made against extremely long or short runs.
+    \item \textit{\textbf{Mean Absolute Percentage Error (MAPE)}:} Average of absolute percentage errors, reported for completeness. MAPE expresses error relative to the true value, which makes it unstable on this workload: job runtimes span from seconds to days, so the shortest jobs dominate the average and the metric reaches values in the thousands of percent even for the best models. It is also asymmetric, penalising over-prediction without bound while capping under-prediction at 100\%. MAE and MdAE are therefore used as the primary accuracy metrics throughout this thesis, and MAPE is never used to rank models.
 \end{itemize}
 
 \clearpage
 \subsection{Feature Importance Analysis}
 
-In tree-based methods, feature importance is calculated through the MDI. MDI computes the total decrease in the splitting criterion (variance for regression) which can be attributed to each individual feature across all decision trees.
+In tree-based methods, feature importance is calculated through the Mean Decrease in Impurity (MDI). MDI computes the total decrease in the splitting criterion (variance for regression) which can be attributed to each individual feature across all decision trees.
 
 \subsection{Hyperparameter Tuning}
 
-Three-stage protocols exist for tuning tree-based models. First, an expansive randomized search occurs where parameters such as the depth of the tree and the learning rate of the model are randomly sampled. Next, a narrow grid search occurs within a defined region of interest. Finally, a single validation pass occurs. DL models are also tuned by changing the number of layers, number of hidden units per layer, dropout rate, and the size of the window used to capture sequential data. All of this occurs with respect to the validation set. Test set performance is measured only once the model has been finalised and evaluated on the test set.
+Three-stage protocols exist for tuning tree-based models. First, an expansive randomized search occurs where parameters such as the depth of the tree and the learning rate of the model are randomly sampled. Next, a narrow grid search occurs within a defined region of interest. Finally, a single validation pass occurs. DL models are also tuned by changing the number of layers, number of hidden units per layer, dropout rate, and the size of the window used to capture sequential data. All of this occurs with respect to the validation set. Test set performance is measured only once the model has been finalized and evaluated on the test set.
 
 There are two main reasons why we utilize a three-stage protocol when searching for the ideal parameters to train our tree-based models. First, their hyperparameter spaces are extremely large and non-convex. Second, performing a naive exhaustive grid search over every possible combination of learning rate, maximum allowed tree depth, and regularization penalty is computationally infeasible. Therefore, instead of attempting to exhaustively search the entire parameter space, we first perform a randomized search over the space to find potential areas of good performance. We then utilize a small grid search around those locations to isolate the optimal parameterization. This hybrid search approach dramatically lowers the overall amount of time it takes to select an optimal model while still nearly ensuring that we have found the optimal solution.
 
 \clearpage
-When developing our DL architectures, there are several different ways we could tune the structure of the network. However, given the sparseness of our One-Hot encoding of our feature vector and the propensity of neural networks to fit sparse datasets rather than finding generalizable patterns in sequential data, we had to heavily prioritize regularization. The primary focus was placed on structural regularization, such as determining how many hidden units should be present in the network. Additionally, we had to determine what percentage of connections should be dropped out at each iteration (dropout rate). The memory horizon or window size ($w$) was also critical to determining how much sequential information should be considered when training. In addition to selecting proper values for these parameters, we chose to use the Adam optimizer to enable efficient exploration of the complex loss surface. Lastly, we utilized early stopping by observing the validation loss as training progressed. If the validation error stopped improving over a predetermined number of iterations, we would stop training and restore the model's weights from the epoch with the lowest validation error. This ensured that our final hyperparameters represented a balanced trade-off between model complexity and the ability to generalize well. To ensure full reproducibility of the reported results, all tree-based models and DL training pipelines use a fixed random seed (\texttt{random\_state=42}).
+When developing our DL architectures, there are several different ways we could tune the structure of the network. However, given the sparseness of our One-Hot encoding of our feature vector and the propensity of neural networks to fit sparse datasets rather than finding generalizable patterns in sequential data, we had to heavily prioritize regularization. The primary focus was placed on structural regularization, such as determining how many hidden units should be present in the network. Additionally, we had to determine what percentage of connections should be dropped out at each iteration (dropout rate). The memory horizon or window size ($w$) was also critical to determining how much sequential information should be considered when training. In addition to selecting proper values for these parameters, we chose to use the Adam optimizer to enable efficient exploration of the complex loss surface. Lastly, we utilized early stopping by observing the validation loss as training progressed. If the validation error stopped improving over a predetermined number of iterations, we would stop training and restore the model's weights from the epoch with the lowest validation error. This ensured that our final hyperparameters represented a balanced trade-off between model complexity and the ability to generalize well. Tree-based models are trained with a fixed random seed (\texttt{random\_state=42}) for reproducibility, which also means their reported metrics reflect a single training run rather than a characterization of seed-to-seed variance. Each DL architecture's final refit is instead repeated over three random seeds (42, 1337, 2024); reported metrics are the mean across seeds, with the standard deviation and the specific seed-42 network's own score (the network actually saved to disk and used in the scheduling simulation of Chapter~\ref{chp:results}) reported alongside it. Because tree-based and DL metrics therefore reflect different levels of estimation uncertainty, a difference between them smaller than the DL seed-to-seed standard deviation should not be read as a reliable ranking.
 
 \begin{landscape}
 \begin{table}[htbp]
@@ -176,18 +176,19 @@ When developing our DL architectures, there are several different ways we could 
 \centering
 \caption[Hyperparameter configuration]{Hyperparameter configuration of all models after validation-set tuning.}
 \label{tab:hyperparams}
-\begin{tabular}{cllll}
+\footnotesize
+\begin{tabular}{cll l p{9.4cm}}
 \hline
 \textbf{Exp} & \textbf{Model} & \textbf{Feature Set} & \textbf{Input Framing} & \textbf{Key Hyperparameters} \\ 
 \hline
-\multirow{3}{*}{A} & RF & \multirow{3}{*}{Numeric only} & \multirow{3}{*}{Independent rows} & n\_estimators=150, max\_depth=20, max\_features=0.7, max\_samples=0.8 \\ 
-                   & XGB       & & & n\_estimators=400, lr=0.025, max\_depth=15, subsample=0.8 \\ 
-                   & LGBM      & & & n\_estimators=1200, lr=0.075, num\_leaves=36, max\_depth=10 \\ 
+\multirow{3}{*}{A} & Random Forest & \multirow{3}{*}{Numeric only} & \multirow{3}{*}{Independent rows} & n\_estimators=150, max\_depth=20, max\_features=0.7, max\_samples=0.8 \\ 
+                   & XGBoost       & & & n\_estimators=400, lr=0.025, max\_depth=15, subsample=0.8 \\ 
+                   & LightGBM      & & & n\_estimators=1200, lr=0.075, num\_leaves=36, max\_depth=10 \\ 
 \hline
-\multirow{4}{*}{B} & RF & \multirow{4}{*}{Numeric + Categorical} & \multirow{4}{*}{Independent rows} & n\_estimators=150, max\_depth=20, max\_features=0.7 \\ 
-                   & XGB       & & & n\_estimators=1000, lr=0.075, max\_depth=15, reg\_lambda=0.1 \\ 
-                   & LGBM (Native) & & & n\_estimators=1700, lr=0.03, num\_leaves=73, max\_depth=10 \\ 
-                   & LGBM (One-Hot)& & & n\_estimators=1200, lr=0.075, num\_leaves=36, max\_depth=10 \\ 
+\multirow{4}{*}{B} & Random Forest & \multirow{4}{*}{Numeric + Categorical} & \multirow{4}{*}{Independent rows} & n\_estimators=150, max\_depth=20, max\_features=0.7 \\ 
+                   & XGBoost       & & & n\_estimators=1000, lr=0.075, max\_depth=15, reg\_lambda=0.1 \\ 
+                   & LightGBM (Native) & & & n\_estimators=1700, lr=0.03, num\_leaves=73, max\_depth=10 \\ 
+                   & LightGBM (One-Hot)& & & n\_estimators=1200, lr=0.075, num\_leaves=36, max\_depth=10 \\ 
 \hline
 \multirow{3}{*}{C} & CNN    & \multirow{3}{*}{Numeric only} & \multirow{3}{*}{Sliding window ($w=1$)} & filters=138, kernel=1, lr=0.0075, batch=824 \\ 
                    & LSTM   & & & hidden=266, layers=2, lr=0.0005, batch=512 \\ 

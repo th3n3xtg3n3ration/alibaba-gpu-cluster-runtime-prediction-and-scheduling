@@ -1,0 +1,84 @@
+{
+  "metrics": {
+    "rows": [
+      {
+        "Ablation": "Full feature set (reference)",
+        "Dropped": "(none)",
+        "Test MAE (s)": 4857.24321078705,
+        "Test MdAE (s)": 880.8757143920157,
+        "Test R\u00b2": 0.07766954028551032,
+        "Spearman rho": 0.6809796688619697
+      },
+      {
+        "Ablation": "\u2212 cluster_load_cpu/gpu, active_job_count",
+        "Dropped": "cluster_load_cpu, cluster_load_gpu, active_job_count",
+        "Test MAE (s)": 4779.764345849856,
+        "Test MdAE (s)": 826.7282217289518,
+        "Test R\u00b2": 0.09253047743857723,
+        "Spearman rho": 0.6856679965302254
+      },
+      {
+        "Ablation": "\u2212 arrival_sec",
+        "Dropped": "arrival_sec",
+        "Test MAE (s)": 4834.174829088489,
+        "Test MdAE (s)": 919.8781114758674,
+        "Test R\u00b2": 0.08305324886039767,
+        "Spearman rho": 0.676587236938375
+      },
+      {
+        "Ablation": "\u2212 arrival_sec, day_of_week",
+        "Dropped": "arrival_sec, day_of_week",
+        "Test MAE (s)": 4834.3231321631965,
+        "Test MdAE (s)": 931.7936842669687,
+        "Test R\u00b2": 0.08006079596028404,
+        "Spearman rho": 0.6766287465587161
+      },
+      {
+        "Ablation": "\u2212 user",
+        "Dropped": "user",
+        "Test MAE (s)": 5791.404056397152,
+        "Test MdAE (s)": 529.85,
+        "Test R\u00b2": -0.12019380403535207,
+        "Spearman rho": 0.3281268231439028
+      }
+    ]
+  },
+  "best_params": {
+    "colsample_bytree": 0.7,
+    "learning_rate": 0.05,
+    "max_bin": 255,
+    "max_depth": 5,
+    "min_child_samples": 20,
+    "min_split_gain": 0.0,
+    "n_estimators": 1300,
+    "num_leaves": 31,
+    "reg_alpha": 0.0,
+    "reg_lambda": 1.0,
+    "subsample": 0.8,
+    "subsample_freq": 1
+  },
+  "feature_mode": "with_categorical_native (ablated)",
+  "train_size": 65747,
+  "test_size": 16437,
+  "experiment": "exp_ablation",
+  "model": "features",
+  "timestamp": "2026-09-06T09:23:36.227191+00:00",
+  "status": "complete",
+  "provenance": {
+    "git_commit": "55a571f63a18b360cc2bdeb3929e01c794bb868d",
+    "src_sha256": {
+      "src/feature_engineering.py": "605f75d280da53a2fd5fa9e15b7beda56e3b90d749d7cd6614c808dcbf1d08e6",
+      "src/tuning.py": "4cdece86315a9612567ade8a1010002fb0a989cded6c0d1a972c9cbed7e8e257"
+    },
+    "data_sha256": "c1897f8341dba8552d002748565cc9d3efcac2268a5f6d7ef797e0e72b67393a",
+    "package_versions": {
+      "scikit-learn": "1.8.0",
+      "xgboost": "3.1.2",
+      "lightgbm": "4.6.0",
+      "torch": "2.11.0",
+      "numpy": "2.3.5",
+      "pandas": "2.3.3"
+    },
+    "device": "mps"
+  }
+}

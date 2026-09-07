@@ -70,12 +70,29 @@ The experimental workflow is organized into six standardized phases, featuring p
 ## 🔧 Installation & Reproducibility
 
 ### Environment Configuration
-The project is built on a standardized scientific Python stack. Install the environment via **Conda**:
+The results in this repository were produced with a **plain venv** (Python 3.11.6), not the Conda
+environment below -- `requirements-lock.txt` is a `pip freeze` of that actual venv and is the
+authoritative source for exact reproduction:
+
+```bash
+python3.11 -m venv venv
+source venv/bin/activate
+pip install -r requirements-lock.txt
+```
+
+`environment.yaml` describes an equivalent Conda environment with the project's direct
+dependencies at their minimum supported versions; it was not used to produce the published
+results and its pinned package set will not exactly match `requirements-lock.txt`.
 
 ```bash
 conda env create -f environment.yaml
 conda activate gpu-scheduling
 ```
+
+**Apple Silicon (MPS) note:** notebook 05 sets `PYTORCH_ENABLE_MPS_FALLBACK=1` and
+`PYTORCH_MPS_HIGH_WATERMARK_RATIO=0.0` in its own setup cell (not via a shell profile or Jupyter
+kernelspec) before importing torch, so no extra environment configuration is needed to reproduce
+DL inference on an Apple Silicon Mac.
 
 ### Dataset Ingestion
 Detailed instructions for acquiring and processing the **Alibaba PAI GPU Trace** are available in [data/README.md](data/README.md). A 100,000-row sample is provided for immediate pipeline verification.

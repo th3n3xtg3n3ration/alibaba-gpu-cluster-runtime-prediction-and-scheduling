@@ -25,8 +25,9 @@ prepare_features_for_model
 
 from __future__ import annotations
 
+import warnings
 from pathlib import Path
-from typing import Any, Dict, List, Literal, Tuple, Union
+from typing import List, Literal, Tuple
 
 import numpy as np
 import pandas as pd
@@ -58,6 +59,7 @@ _PROCESSED_DIR = Path(__file__).resolve().parents[1] / "data" / "processed"
 def build_job_table_from_sample(
     df: pd.DataFrame,
     time_unit: str = "s",
+    include_cpu_only: bool = False,
 ) -> pd.DataFrame:
     """
     Perform canonical normalization and cleaning of the raw job dataset.
@@ -69,6 +71,16 @@ def build_job_table_from_sample(
     time_unit : str, default ``"s"``
         Unit of the ``submit_time`` timestamps (passed to
         :func:`pandas.to_datetime` ``unit`` argument).
+    include_cpu_only : bool, default ``False``
+        Keep jobs that request no GPU (``num_gpu == 0``). The modelling
+        pipeline predicts GPU-job runtime and drops these, but the
+        sweep-line cluster-load features describe *background load on the
+        cluster*, and CPU-only jobs (17,816 rows, 17.8% of the trace, median
+        runtime 955 s) occupy real CPU capacity on the same machines. Leaving
+        them out of that computation makes ``cluster_load_cpu`` /
+        ``active_job_count`` describe GPU-job traffic only, not cluster load
+        (``leakage-4`` / ``robustness-11``). Pass ``True`` when building the
+        frame the sweep-line runs over, then filter to GPU jobs afterwards.
 
     Returns
     -------
@@ -98,10 +110,10 @@ def build_job_table_from_sample(
     # ------------------------------------------------------------------
     # Single validity filter
     # ------------------------------------------------------------------
-    job = df[
-        (df["duration"] > 0) &
-        (df["num_gpu"] > 0)
-    ].copy()
+    _valid = df["duration"] > 0
+    if not include_cpu_only:
+        _valid &= df["num_gpu"] > 0
+    job = df[_valid].copy()
 
     # ------------------------------------------------------------------
     # Convert submit_time to datetime
@@ -115,7 +127,11 @@ def build_job_table_from_sample(
     # Normalize core fields
     # ------------------------------------------------------------------
     job["job_runtime"] = job["duration"].astype(float)
-    job["gpu_demand"] = job["num_gpu"].astype(int)
+    # Kept as float: Alibaba PAI supports fractional GPU allocation (GPU sharing),
+    # so num_gpu legitimately takes values such as 0.25 or 0.5. Casting to int here
+    # would truncate every sub-1.0 request to zero and erase the GPU demand of
+    # roughly half the trace.
+    job["gpu_demand"] = job["num_gpu"].astype(float)
 
     # ------------------------------------------------------------------
     # Relative arrival time (seconds since first job)
@@ -156,8 +172,26 @@ def add_temporal_features(job: pd.DataFrame) -> pd.DataFrame:
     pd.DataFrame
         Copy of ``job`` with two new integer columns:
 
-        - ``hour_of_day``  : Hour of submit time [0, 23].
-        - ``day_of_week``  : Weekday of submit time [0=Mon, 6=Sun].
+        - ``hour_of_day``  : Hour of submit time [0, 23]. The Alibaba PAI
+          trace's ``submit_time`` is a relative offset, not a real
+          timestamp (see ``day_of_week`` below), so this is a 24-hour
+          cyclical phase of unknown absolute alignment -- still a
+          meaningful diurnal-rhythm signal, just not "9am" in any
+          verifiable sense.
+        - ``day_of_week``  : Trace-relative day index (0, 1, 2, ...),
+          counted from the first job's arrival, NOT the calendar weekday
+          [0=Mon, 6=Sun] the name suggests. The public trace release does
+          not disclose its real collection date, and the trace spans only
+          ~7.7 days, so computing an actual ``dt.dayofweek`` here would
+          fold trace-day 0 and trace-day 7 onto the same value -- with
+          this dataset's chronological train/test split, every occurrence
+          of that value in training then comes from trace-day 0 while the
+          test set's occurrences come from trace-day 7, a leakage/
+          extrapolation issue (a model "learns" one value from the first
+          day of the trace and is scored on the same value eight days
+          later). An absolute day counter avoids that collision; it does
+          not carry a verified weekly-cycle interpretation and should not
+          be read as e.g. "Monday" in the text.
 
     Raises
     ------
@@ -169,7 +203,10 @@ def add_temporal_features(job: pd.DataFrame) -> pd.DataFrame:
 
     df = job.copy()
     df["hour_of_day"] = df["arrival_time"].dt.hour
-    df["day_of_week"] = df["arrival_time"].dt.dayofweek
+    _trace_start = df["arrival_time"].min()
+    df["day_of_week"] = (
+        (df["arrival_time"] - _trace_start).dt.total_seconds() // 86400
+    ).astype(int)
     return df
 
 
@@ -218,7 +255,7 @@ def add_cluster_utilization_features(
 
         - ``arrival_sec``  (float): relative arrival time in seconds.
         - ``job_runtime``  (float): job duration in seconds.
-        - ``gpu_demand``   (int):   number of GPUs requested.
+        - ``gpu_demand``   (float): GPUs requested; may be fractional.
         - ``num_cpu``      (int, optional): number of CPUs requested.
     time_window : int, default 300
         Reserved for future windowed-averaging variants; currently unused.
@@ -232,7 +269,19 @@ def add_cluster_utilization_features(
         - ``cluster_load_gpu``  : background GPU demand at arrival.
         - ``active_job_count``  : number of concurrently running jobs at arrival.
     """
-    df = job.copy().sort_values("arrival_sec")
+    # kind="mergesort" (stable) is load-bearing, not a preference: 35,478 of the
+    # trace's 100,000 rows share an arrival_sec with at least one other job, and
+    # the default quicksort permutes 13,187 of them even though the input already
+    # arrives sorted. The feature values are unaffected (merge_asof keys only on
+    # arrival_sec, and every per-job value is identical either way), but this
+    # frame's row order survives into the results: the sort in
+    # prepare_features_for_model below is itself stable and therefore only
+    # freezes whatever permutation it receives, the sequence models window over
+    # consecutive rows, and notebook 05 uses row position as the simulator's
+    # arrival tie-break while asserting the order is the trace's own. A stable
+    # sort keeps tied arrivals where the trace put them instead of where the
+    # sort implementation happened to put them.
+    df = job.copy().sort_values("arrival_sec", kind="mergesort")
 
     # Guard: num_cpu may not exist in all dataset variants
     has_cpu = "num_cpu" in df.columns
@@ -385,11 +434,15 @@ def prepare_features_for_model(
         Fraction of samples reserved for the test set.
     random_state : int, default 42
         Random seed for reproducibility.
-    feature_mode : {"numeric_only", "with_categorical_native", "with_categorical_onehot"}
+    feature_mode : {"numeric_only", "with_categorical_native", "with_categorical", "with_categorical_onehot"}
         Controls how categorical columns are handled:
 
         - ``"numeric_only"``              : drop categoricals.
-        - ``"with_categorical_native"``   : keep as pandas Categorical (LightGBM-ready).
+        - ``"with_categorical_native"``   : keep as pandas Categorical, with the
+          category list derived from the *training* partition only
+          (LightGBM/XGBoost-ready).
+        - ``"with_categorical"``          : alias of ``"with_categorical_native"``.
+          Both names run the same code; see the branch below for why they must.
         - ``"with_categorical_onehot"``   : one-hot encode categoricals.
     use_processed : bool, default False
         If ``True``, load the pre-processed utilization CSV produced by
@@ -420,10 +473,32 @@ def prepare_features_for_model(
             job_df["arrival_time"] = pd.to_datetime(job_df["arrival_time"])
     else:
         raw_df = load_sample(which=dataset)
-        job_df = build_job_table_from_sample(raw_df, time_unit=time_unit)
+        # leakage-4 / robustness-11: the sweep-line features describe the
+        # background load a job arrives into, so they are computed over EVERY
+        # job in the trace -- including the CPU-only jobs (num_gpu == 0, 17.8%
+        # of rows, median runtime 955 s) that consume real CPU capacity on the
+        # same machines. Filtering those out first, as this pipeline used to,
+        # made cluster_load_cpu / active_job_count a measure of GPU-job traffic
+        # rather than of cluster load. Modelling still runs on GPU jobs only --
+        # the restriction just happens after the load is computed, not before.
+        job_df = build_job_table_from_sample(raw_df, time_unit=time_unit, include_cpu_only=True)
         job_df = add_temporal_features(job_df)
         job_df = add_categorical_features(job_df)
         job_df = add_cluster_utilization_features(job_df)
+        job_df = job_df[job_df["gpu_demand"] > 0].copy().reset_index(drop=True)
+
+    # ------------------------------------------------------------------
+    # Enforce chronological row order.
+    #
+    # With shuffle=False the split below simply takes the leading 80% of rows,
+    # so "chronological" holds only if the frame is already ordered by arrival.
+    # The Alibaba trace happens to ship sorted, which means a differently
+    # ordered copy of the same data would silently produce a non-chronological
+    # split that still looks correct. Sorting here makes the guarantee explicit
+    # rather than inherited from the input file.
+    # ------------------------------------------------------------------
+    if "arrival_sec" in job_df.columns:
+        job_df = job_df.sort_values("arrival_sec", kind="mergesort").reset_index(drop=True)
 
     # Restore categorical dtype when loading from CSV (CSV drops metadata)
     if feature_mode.startswith("with_categorical"):
@@ -454,6 +529,20 @@ def prepare_features_for_model(
     # ------------------------------------------------------------------
     # Shared index split (same rows for all feature_mode variants)
     # ------------------------------------------------------------------
+    if shuffle:
+        # Randomising the split lets a model train on jobs that arrive after the
+        # ones it is scored on. On this trace that inflates R2 several-fold and
+        # is exactly the leakage the chronological design exists to prevent, so
+        # it must never happen unnoticed.
+        warnings.warn(
+            "prepare_features_for_model(shuffle=True) produces a randomised, "
+            "NON-chronological split. Test jobs will precede training jobs in "
+            "time, leaking future information and inflating every metric. Use "
+            "this only to demonstrate leakage, never to report results.",
+            UserWarning,
+            stacklevel=2,
+        )
+
     idx_train, idx_test = train_test_split(
         job_df.index,
         test_size=test_size,
@@ -465,6 +554,19 @@ def prepare_features_for_model(
 
     X_full = job_df[numeric_cols + categorical_cols].copy()
     y_full = job_df["job_runtime"].copy()
+
+    if not shuffle and "arrival_sec" in job_df.columns:
+        # Fails loudly rather than reporting leaked-optimistic metrics if the
+        # ordering assumption above is ever broken by an upstream change.
+        latest_train = job_df.loc[idx_train, "arrival_sec"].max()
+        earliest_test = job_df.loc[idx_test, "arrival_sec"].min()
+        if earliest_test < latest_train:
+            raise ValueError(
+                "Chronological split violated: the test set contains a job that "
+                f"arrived at t={earliest_test:.0f}s, before the last training job "
+                f"at t={latest_train:.0f}s. Training on future jobs to predict past "
+                "ones leaks information and inflates every reported metric."
+            )
 
     X_train_full = X_full.loc[idx_train].copy()
     X_test_full = X_full.loc[idx_test].copy()
@@ -478,12 +580,34 @@ def prepare_features_for_model(
         X_train = X_train_full[numeric_cols].copy()
         X_test = X_test_full[numeric_cols].copy()
 
-    elif feature_mode == "with_categorical_native":
+    elif feature_mode in ("with_categorical_native", "with_categorical"):
+        # ONE branch for both names, deliberately. "with_categorical" used to be
+        # a second branch that returned the same columns (X_full is already
+        # numeric_cols + categorical_cols, so slicing it changed nothing) but
+        # skipped the category handling below -- and "with_categorical" is the
+        # name notebooks 04 and 05 actually pass, so every reported categorical
+        # model was built without the mitigation while the mitigated branch sat
+        # unused. Two paths that are only correct while they stay identical do
+        # not stay identical; do not split them apart again.
         X_train = X_train_full.copy()
         X_test = X_test_full.copy()
         for col in categorical_cols:
-            X_train[col] = X_train[col].astype("category")
-            X_test[col] = X_test[col].astype("category")
+            # X_train_full/X_test_full are both slices of a job_df whose
+            # categorical dtype was assigned before the split, so a plain
+            # .astype("category") on an already-categorical column is a
+            # no-op that keeps every category seen anywhere in the full
+            # dataset -- on this trace that is 103 of 681 users and 1 of 5
+            # gpu_types that occur only in the test partition, which the model
+            # never trained on a single row of (leakage-6). It also keeps
+            # categories contributed solely by the CPU-only rows that
+            # add_categorical_features saw and the gpu_demand > 0 filter then
+            # dropped. remove_unused_categories() derives the category list
+            # from what TRAIN actually contains, and rebuilding test against
+            # that list maps anything outside it to NaN instead of silently
+            # carrying it as a "known" category.
+            X_train[col] = X_train[col].astype("category").cat.remove_unused_categories()
+            train_categories = X_train[col].cat.categories
+            X_test[col] = pd.Categorical(X_test[col], categories=train_categories)
 
     elif feature_mode == "with_categorical_onehot":
         if categorical_cols:
@@ -510,13 +634,6 @@ def prepare_features_for_model(
         else:
             X_train = X_train_full[numeric_cols].copy()
             X_test = X_test_full[numeric_cols].copy()
-
-    elif feature_mode == "with_categorical":
-        # Returns all numeric AND categorical columns without any encoding
-        # This is strictly designed for LightGBM native categorical support
-        feature_cols = numeric_cols + categorical_cols
-        X_train = X_train_full[feature_cols].copy()
-        X_test = X_test_full[feature_cols].copy()
 
     else:
         raise ValueError(f"Unknown feature_mode: {feature_mode!r}")

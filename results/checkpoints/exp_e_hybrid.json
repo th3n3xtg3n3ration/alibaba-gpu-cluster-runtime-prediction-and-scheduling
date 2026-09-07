@@ -1,18 +1,61 @@
 {
   "metrics": {
-    "mae": 8907.213795744025,
-    "rmse": 15723.106043070611,
-    "r2": -0.020484965373419373,
-    "mape": 49.06980771833904,
-    "mdae": 7269.4814453125,
-    "train_time": 20.9219868183136
+    "mae": 6716.671215199946,
+    "mae_std": 266.46116312033445,
+    "rmse": 15674.712374697234,
+    "rmse_std": 73.48617911311477,
+    "r2": -0.01422765470180846,
+    "r2_std": 0.009502983800664323,
+    "mape": 2415.0256862750534,
+    "mape_std": 359.1861435049307,
+    "mdae": 3817.5879720052085,
+    "mdae_std": 561.1062796728651,
+    "train_time": 320.223256111145,
+    "train_time_std": 467.858457188279,
+    "n_seeds": 3,
+    "seeds": [
+      42,
+      1337,
+      2024
+    ],
+    "mae_seed0": 6477.205015845895,
+    "rmse_seed0": 15739.30002004965,
+    "r2_seed0": -0.02258814019142008,
+    "mape_seed0": 2058.6215473747666,
+    "mdae_seed0": 3254.009521484375,
+    "train_time_seed0": 64.17069101333618
   },
   "best_params": {
     "num_filters": 246,
     "kernel_size": 3,
     "lstm_hidden_size": 256,
-    "lstm_num_layers": 2,
-    "learning_rate": 0.0005,
-    "batch_size": 612
+    "lstm_num_layers": 1,
+    "learning_rate": 0.0075,
+    "batch_size": 256,
+    "dropout": 0.3
+  },
+  "feature_mode": "numeric_plus_sequential",
+  "train_size": 65738,
+  "test_size": 16437,
+  "experiment": "exp_e",
+  "model": "hybrid",
+  "timestamp": "2026-09-06T09:23:38.696598+00:00",
+  "status": "complete",
+  "provenance": {
+    "git_commit": "55a571f63a18b360cc2bdeb3929e01c794bb868d",
+    "src_sha256": {
+      "src/feature_engineering.py": "605f75d280da53a2fd5fa9e15b7beda56e3b90d749d7cd6614c808dcbf1d08e6",
+      "src/tuning.py": "4cdece86315a9612567ade8a1010002fb0a989cded6c0d1a972c9cbed7e8e257"
+    },
+    "data_sha256": "c1897f8341dba8552d002748565cc9d3efcac2268a5f6d7ef797e0e72b67393a",
+    "package_versions": {
+      "scikit-learn": "1.8.0",
+      "xgboost": "3.1.2",
+      "lightgbm": "4.6.0",
+      "torch": "2.11.0",
+      "numpy": "2.3.5",
+      "pandas": "2.3.3"
+    },
+    "device": "mps"
   }
 }

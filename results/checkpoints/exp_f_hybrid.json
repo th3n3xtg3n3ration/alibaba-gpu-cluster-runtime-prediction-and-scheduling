@@ -1,18 +1,61 @@
 {
   "metrics": {
-    "mae": 10212.430088890536,
-    "rmse": 16082.642923219997,
-    "r2": -0.06768898650842003,
-    "mape": 61.1210236743064,
-    "mdae": 9692.5439453125,
-    "train_time": 55.883126974105835
+    "mae": 6387.027343819482,
+    "mae_std": 585.6272183265565,
+    "rmse": 15236.332297680949,
+    "rmse_std": 176.8058607835987,
+    "r2": 0.04163756740778476,
+    "r2_std": 0.022240260053800816,
+    "mape": 1957.2437921855228,
+    "mape_std": 854.8837690977846,
+    "mdae": 3057.6315104166665,
+    "mdae_std": 1351.6290152132187,
+    "train_time": 66.79599030812581,
+    "train_time_std": 2.8780738267886505,
+    "n_seeds": 3,
+    "seeds": [
+      42,
+      1337,
+      2024
+    ],
+    "mae_seed0": 6068.891306431136,
+    "rmse_seed0": 15236.313016509208,
+    "r2_seed0": 0.04172601919812835,
+    "mape_seed0": 1570.8130436842002,
+    "mdae_seed0": 2212.758056640625,
+    "train_time_seed0": 66.7878668308258
   },
   "best_params": {
-    "num_filters": 138,
+    "num_filters": 118,
     "kernel_size": 3,
     "lstm_hidden_size": 256,
-    "lstm_num_layers": 2,
-    "learning_rate": 0.0015,
-    "batch_size": 266
+    "lstm_num_layers": 1,
+    "learning_rate": 0.0012,
+    "batch_size": 266,
+    "dropout": 0.2
+  },
+  "feature_mode": "categorical_plus_sequential",
+  "train_size": 65738,
+  "test_size": 16437,
+  "experiment": "exp_f",
+  "model": "hybrid",
+  "timestamp": "2026-09-06T09:23:39.711362+00:00",
+  "status": "complete",
+  "provenance": {
+    "git_commit": "55a571f63a18b360cc2bdeb3929e01c794bb868d",
+    "src_sha256": {
+      "src/feature_engineering.py": "605f75d280da53a2fd5fa9e15b7beda56e3b90d749d7cd6614c808dcbf1d08e6",
+      "src/tuning.py": "4cdece86315a9612567ade8a1010002fb0a989cded6c0d1a972c9cbed7e8e257"
+    },
+    "data_sha256": "c1897f8341dba8552d002748565cc9d3efcac2268a5f6d7ef797e0e72b67393a",
+    "package_versions": {
+      "scikit-learn": "1.8.0",
+      "xgboost": "3.1.2",
+      "lightgbm": "4.6.0",
+      "torch": "2.11.0",
+      "numpy": "2.3.5",
+      "pandas": "2.3.3"
+    },
+    "device": "mps"
   }
 }

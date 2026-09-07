@@ -1,0 +1,49 @@
+{
+  "metrics": {
+    "fold_maes": [
+      5279.32821602802,
+      5571.518497136752,
+      2902.0966789359613,
+      3658.8523345890126,
+      7539.771171667024
+    ]
+  },
+  "best_params": {
+    "colsample_bytree": 0.7,
+    "learning_rate": 0.05,
+    "max_bin": 255,
+    "max_depth": 5,
+    "min_child_samples": 20,
+    "min_split_gain": 0.0,
+    "n_estimators": 1300,
+    "num_leaves": 31,
+    "reg_alpha": 0.0,
+    "reg_lambda": 1.0,
+    "subsample": 0.8,
+    "subsample_freq": 1
+  },
+  "feature_mode": "with_categorical_native (GroupKFold by user)",
+  "train_size": 82184,
+  "test_size": 0,
+  "experiment": "exp_robustness9",
+  "model": "groupwise_cv",
+  "timestamp": "2026-09-06T09:23:36.505227+00:00",
+  "status": "complete",
+  "provenance": {
+    "git_commit": "55a571f63a18b360cc2bdeb3929e01c794bb868d",
+    "src_sha256": {
+      "src/feature_engineering.py": "605f75d280da53a2fd5fa9e15b7beda56e3b90d749d7cd6614c808dcbf1d08e6",
+      "src/tuning.py": "4cdece86315a9612567ade8a1010002fb0a989cded6c0d1a972c9cbed7e8e257"
+    },
+    "data_sha256": "c1897f8341dba8552d002748565cc9d3efcac2268a5f6d7ef797e0e72b67393a",
+    "package_versions": {
+      "scikit-learn": "1.8.0",
+      "xgboost": "3.1.2",
+      "lightgbm": "4.6.0",
+      "torch": "2.11.0",
+      "numpy": "2.3.5",
+      "pandas": "2.3.3"
+    },
+    "device": "mps"
+  }
+}

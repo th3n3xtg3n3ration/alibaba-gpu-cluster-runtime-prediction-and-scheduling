@@ -31,6 +31,19 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 cd "$PROJECT_ROOT"
 
+# Use this project's own venv, not whatever `python3` resolves to on $PATH
+# (a pyenv/system shim can point at a completely different environment,
+# with different library versions than the one that produced the published
+# results -- reproducibility-6). Falls back to `python3` with a warning if
+# the venv hasn't been created yet, rather than failing outright.
+if [ -x "$PROJECT_ROOT/venv/bin/python" ]; then
+    PYTHON="$PROJECT_ROOT/venv/bin/python"
+else
+    echo -e "${YELLOW}⚠ $PROJECT_ROOT/venv not found -- falling back to 'python3' on PATH.${RESET}"
+    echo -e "${YELLOW}  Results may not match the published environment; see README.md.${RESET}"
+    PYTHON="python3"
+fi
+
 MODE="${1:-all}"
 
 echo -e "${BOLD}${BLUE}==============================================================================${RESET}"
@@ -42,40 +55,40 @@ echo -e "${CYAN}⚙️  Pipeline Mode:${RESET} ${BOLD}$MODE${RESET}\n"
 case "$MODE" in
     test)
         echo -e "${BOLD}${YELLOW}▶ [Step 1/1] Running Automated Unit Tests...${RESET}"
-        python3 -m unittest discover tests
+        "$PYTHON" -m unittest discover tests
         echo -e "\n${BOLD}${GREEN}✅ All unit tests passed successfully!${RESET}"
         ;;
 
     export)
         echo -e "${BOLD}${YELLOW}▶ [Step 1/1] Fast Exporting Figures & Tables from Notebooks...${RESET}"
-        python3 scripts/export_thesis_results.py
+        "$PYTHON" scripts/export_thesis_results.py
         echo -e "\n${BOLD}${GREEN}✅ Export complete. Artifacts saved in results/figures/thesis_export/${RESET}"
         ;;
 
     run|execute)
         echo -e "${BOLD}${YELLOW}▶ [Step 1/1] Auto-Executing Notebooks & Exporting Results...${RESET}"
-        python3 scripts/export_thesis_results.py --execute
+        "$PYTHON" scripts/export_thesis_results.py --execute
         echo -e "\n${BOLD}${GREEN}✅ Execution & export complete!${RESET}"
         ;;
 
     force)
         echo -e "${BOLD}${YELLOW}▶ [Step 1/1] Force Re-Executing All Notebooks from Scratch...${RESET}"
-        python3 scripts/export_thesis_results.py --force-execute
+        "$PYTHON" scripts/export_thesis_results.py --force-execute
         echo -e "\n${BOLD}${GREEN}✅ Complete pipeline re-run & export finished!${RESET}"
         ;;
 
     tr)
         echo -e "${BOLD}${YELLOW}▶ [Step 1/1] Exporting from Turkish Notebooks (notebooks/tr/)...${RESET}"
-        python3 scripts/export_thesis_results.py --lang tr
+        "$PYTHON" scripts/export_thesis_results.py --lang tr
         echo -e "\n${BOLD}${GREEN}✅ Turkish notebook results exported successfully!${RESET}"
         ;;
 
     all)
         echo -e "${BOLD}${YELLOW}▶ [Step 1/2] Quality Assurance (Unit Tests)...${RESET}"
-        python3 -m unittest discover tests
+        "$PYTHON" -m unittest discover tests
 
         echo -e "\n${BOLD}${YELLOW}▶ [Step 2/2] Extracting Thesis Figures & Tables...${RESET}"
-        python3 scripts/export_thesis_results.py
+        "$PYTHON" scripts/export_thesis_results.py
 
         echo -e "\n${BOLD}${BLUE}==============================================================================${RESET}"
         echo -e "${BOLD}${GREEN}🎉 PIPELINE COMPLETED SUCCESSFULLY!${RESET}"
@@ -96,6 +109,6 @@ case "$MODE" in
 
     *)
         echo -e "${YELLOW}Unknown mode: '$MODE'. Defaulting to fast export...${RESET}"
-        python3 scripts/export_thesis_results.py
+        "$PYTHON" scripts/export_thesis_results.py
         ;;
 esac

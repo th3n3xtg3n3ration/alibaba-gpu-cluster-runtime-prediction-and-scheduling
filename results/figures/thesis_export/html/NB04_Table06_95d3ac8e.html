@@ -1,0 +1,55 @@
+<html><head><meta charset="utf-8"><style>table{border-collapse:collapse;font-family:Arial,sans-serif;font-size:12px} td,th{border:1px solid #ccc;padding:6px 10px} th{background:#f0f0f0}</style></head><body><div>
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th>Model</th>
+      <th>Test MAE (s)</th>
+      <th>Test MdAE (s)</th>
+      <th>Test RMSE (s)</th>
+      <th>Test MAPE (%)</th>
+      <th>Test R²</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>LSTM</td>
+      <td>6137.18</td>
+      <td>2555.25</td>
+      <td>14528.68</td>
+      <td>1604.51</td>
+      <td>0.13</td>
+    </tr>
+    <tr>
+      <td>CNN-LSTM</td>
+      <td>6387.03</td>
+      <td>3057.63</td>
+      <td>15236.33</td>
+      <td>1957.24</td>
+      <td>0.04</td>
+    </tr>
+    <tr>
+      <td>CNN</td>
+      <td>6464.84</td>
+      <td>3621.12</td>
+      <td>15315.53</td>
+      <td>2190.86</td>
+      <td>0.03</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+</div></body></html>

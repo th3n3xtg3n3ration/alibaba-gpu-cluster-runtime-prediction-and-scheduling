@@ -1,16 +1,59 @@
 {
   "metrics": {
-    "mae": 6704.189705874339,
-    "rmse": 15285.219752223516,
-    "r2": 0.03556425690418874,
-    "mape": 25.23357688776293,
-    "mdae": 3794.4697265625,
-    "train_time": 34.94378614425659
+    "mae": 6464.841662684147,
+    "mae_std": 218.44678079730963,
+    "rmse": 15315.530256257924,
+    "rmse_std": 67.00185027681334,
+    "r2": 0.031723169141321596,
+    "r2_std": 0.008477479157421213,
+    "mape": 2190.8626376368047,
+    "mape_std": 271.18286409497534,
+    "mdae": 3621.1171061197915,
+    "mdae_std": 298.9747789010039,
+    "train_time": 66.81547729174297,
+    "train_time_std": 19.215607754604722,
+    "n_seeds": 3,
+    "seeds": [
+      42,
+      1337,
+      2024
+    ],
+    "mae_seed0": 6292.691097176734,
+    "rmse_seed0": 15388.48267880876,
+    "r2_seed0": 0.022489291358332664,
+    "mape_seed0": 1951.5220065048534,
+    "mdae_seed0": 3375.84033203125,
+    "train_time_seed0": 88.24514889717102
   },
   "best_params": {
-    "num_filters": 118,
+    "num_filters": 128,
     "kernel_size": 3,
-    "learning_rate": 0.0075,
-    "batch_size": 256
+    "learning_rate": 0.004,
+    "batch_size": 246,
+    "dropout": 0.2
+  },
+  "feature_mode": "categorical_plus_sequential",
+  "train_size": 65738,
+  "test_size": 16437,
+  "experiment": "exp_f",
+  "model": "cnn",
+  "timestamp": "2026-09-06T09:23:39.519971+00:00",
+  "status": "complete",
+  "provenance": {
+    "git_commit": "55a571f63a18b360cc2bdeb3929e01c794bb868d",
+    "src_sha256": {
+      "src/feature_engineering.py": "605f75d280da53a2fd5fa9e15b7beda56e3b90d749d7cd6614c808dcbf1d08e6",
+      "src/tuning.py": "4cdece86315a9612567ade8a1010002fb0a989cded6c0d1a972c9cbed7e8e257"
+    },
+    "data_sha256": "c1897f8341dba8552d002748565cc9d3efcac2268a5f6d7ef797e0e72b67393a",
+    "package_versions": {
+      "scikit-learn": "1.8.0",
+      "xgboost": "3.1.2",
+      "lightgbm": "4.6.0",
+      "torch": "2.11.0",
+      "numpy": "2.3.5",
+      "pandas": "2.3.3"
+    },
+    "device": "mps"
   }
 }

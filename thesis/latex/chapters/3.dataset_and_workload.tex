@@ -1,6 +1,6 @@
 \chapter{Dataset and Workload Analysis}\label{chp:dataset}
 
-In recent years, an emerging trend within the research community has been a shift from traditional scheduling approaches (e.g., FIFO) toward SJF. The purpose of this chapter is to describe the dataset utilized throughout this thesis; the steps taken to clean, prepare, and transform the data for modeling; the exploratory data analysis (EDA) that informs several critical design choices; and the feature extraction process that converts raw job logs into model-ready input formats. All analyzes are based on the open-source Alibaba PAI GPU cluster trace~\cite{weng2022mlaas}.
+In recent years, an emerging trend within the research community has been a shift from traditional scheduling approaches (e.g., FIFO) toward SJF. The purpose of this chapter is to describe the dataset utilized throughout this thesis; the steps taken to clean, prepare, and transform the data for modeling; the exploratory data analysis (EDA) that informs several critical design choices; and the feature extraction process that converts raw job logs into model-ready input formats. All analyses are based on the open-source Alibaba PAI GPU cluster trace~\cite{weng2022mlaas}.
 
 %% ================================================================
 \needspace{5\baselineskip}
@@ -8,7 +8,7 @@ In recent years, an emerging trend within the research community has been a shif
 
 The Alibaba PAI GPU cluster trace was collected from a production cluster that was running on Alibaba's PAI~\cite{weng2022mlaas}. This cluster has about 1,800 machines equipped with a total of more than 6,500 GPUs. These are used continuously and heterogeneously for both internal and external customer ML training and inference workloads.
 
-The raw trace has 100,000 job records sent over a multi-week period. Each job record contains the following attributes: a unique job identifier (\texttt{job\_id}), the timestamp at which it was submitted (\texttt{arrival\_time}), the number of GPUs requested (\texttt{gpu\_demand}), the number of CPUs requested (\texttt{num\_cpu}), the number of parallel instances (\texttt{num\_inst}), the hardware type of the GPU (\texttt{gpu\_type}), and the user who submitted it (\texttt{user}). The primary prediction target is the job runtime (\texttt{job\_runtime}), or the total number of seconds the job ran after it was submitted until it completed.
+The raw trace has 100,000 job records sent over a roughly eight-day period. Each job record contains the following attributes: a unique job identifier (\texttt{job\_id}), the timestamp at which it was submitted (\texttt{arrival\_time}), the number of GPUs requested (\texttt{gpu\_demand}), the number of CPUs requested (\texttt{num\_cpu}), the number of parallel instances (\texttt{num\_inst}), the hardware type of the GPU (\texttt{gpu\_type}), and the user who submitted it (\texttt{user}). The primary prediction target is the job runtime (\texttt{job\_runtime}), or the total number of seconds the job ran after it was submitted until it completed.
 
 %% ================================================================
 \needspace{5\baselineskip}
@@ -22,7 +22,7 @@ Raw trace files have a variety of forms of noise and inconsistencies to correct 
 
 \textbf{Filtering out non-positive runtimes.} Records with a runtime of zero or a negative duration will be removed. These records are logging artifacts instead of actual workloads.
 
-After removing invalid records, the processed dataset has \textbf{82,184 valid GPU jobs} remaining from the 100,000 original records; 17,816 records with zero GPU demand, missing runtimes, or a non-positive duration have been eliminated. A single CSV file will serve as a deterministic data source for all further analysis, modeling, and simulation.
+After removing invalid records, the processed dataset has \textbf{82,184 valid GPU jobs} remaining from the 100,000 original records. All 17,816 eliminated records were removed by the zero-GPU filter: they carry \texttt{gpu\_type} = \texttt{CPU} and request no GPU at all. The missing-runtime and non-positive-duration filters are applied for robustness but removed no record from this sample, since every entry in the trace reports a strictly positive duration. A single CSV file will serve as a deterministic data source for all further analysis, modeling, and simulation.
 
 %% ================================================================
 \needspace{5\baselineskip}
@@ -42,7 +42,7 @@ A plot showing both the raw and log-transformed distributions of job durations i
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=\textwidth]{figures/nb01-fig01-runtime-dist.png}
-\caption[Job runtime distribution]{Distribution of job runtime (in seconds), both in raw scale (left) and in log\textsubscript{10} scale (right). Due to extreme skewness towards long job durations, we observe a clear difference between the two visualizations. While the log\textsubscript{10} scale provides insight into the shape of the distribution, it clearly indicates the presence of two distinct modes. We can identify these as job runtimes around 300\,s and those in excess of 10,000\,s.}
+\caption[Job runtime distribution]{Distribution of job runtime (in seconds), both in raw scale (left) and in log\textsubscript{10} scale (right). Due to extreme skewness toward long job durations, we observe a clear difference between the two visualizations. While the log\textsubscript{10} scale provides insight into the shape of the distribution, it clearly indicates the presence of two distinct modes. We can identify these as job runtimes around 300\,s and those in excess of 10,000\,s.}
 \label{fig:runtime-dist}
 \end{figure}
 
@@ -69,7 +69,7 @@ Figure~\ref{fig:gpu-demand} illustrates the variation in GPU demand among jobs s
 \end{figure}
 
 \clearpage
-Figure~\ref{fig:gpu-vs-runtime} shows the connection between GPU requests and runtime for jobs, using 5,000 randomly selected samples, with both axes on a log scale. The scatter plot shows no simple linear correlation between GPU requests and runtime. The jobs that used a single GPU had runtimes ranging from 10\textsuperscript{1}\,s to 10\textsuperscript{5}\,s ($\approx$10\,s to $\approx$3.5 days). Higher GPU requests (6-8 GPUs) are rare but appear close to the 10\textsuperscript{4}\,s mark. This confirms that \texttt{gpu\_demand} alone is fundamentally insufficient for accurate runtime prediction, motivating the addition of other context-based features like \texttt{user}, \texttt{gpu\_type}, and cluster utilization metrics.
+Figure~\ref{fig:gpu-vs-runtime} shows the connection between GPU requests and runtime for jobs, using 5,000 randomly selected samples, with both axes on a log scale. The scatter plot shows no simple linear correlation between GPU requests and runtime. The jobs that used a single GPU had runtimes ranging from 10\textsuperscript{1}\,s to 10\textsuperscript{5}\,s ($\approx$10\,s to $\approx$28\,hours). Higher GPU requests (6-8 GPUs) are rare but appear close to the 10\textsuperscript{4}\,s mark. This confirms that \texttt{gpu\_demand} alone is fundamentally insufficient for accurate runtime prediction, motivating the addition of other context-based features like \texttt{user}, \texttt{gpu\_type}, and cluster utilization metrics.
 
 \begin{figure}[htbp]
 \centering
@@ -101,12 +101,12 @@ Figure~\ref{fig:interarrival} represents the distribution of time intervals (in 
 \end{figure}
 
 \clearpage
-Figure~\ref{fig:arrival-heatmap} provides a day-of-week by hour-of-day analysis for job submissions. The color intensity of each cell indicates the number of jobs submitted. There was peak submission activity during daytime hours from Monday through Friday (rows 0-4). The most intense submissions were on Thursdays (row 3) at hour values 0-2, 7, and 10-14. Submission rates dropped significantly on weekends (rows 5-6) compared to submission rates during the week. This significant diurnal and weekly variability motivates the selection of \texttt{hour\_of\_day} and \texttt{day\_of\_week} as predictive variables.
+Figure~\ref{fig:arrival-heatmap} provides a trace-day by hour-of-day analysis for job submissions. The color intensity of each cell indicates the number of jobs submitted. An earlier draft of this section read the y-axis as calendar days of the week and reported a Monday-through-Friday daytime peak with the heaviest submissions on ``Thursday.'' That reading does not hold: the publicly released trace does not disclose its actual collection date, and it spans only about 7.7 days, so a true calendar-weekday encoding would fold the trace's first and eighth day onto the same value -- unverifiable given the undisclosed start date, and a leakage risk for the chronological train/test split, since every training occurrence of that shared value would come from the trace's first day while every test occurrence comes from its last. \texttt{day\_of\_week} is therefore computed as an absolute trace-day counter (0, 1, 2, \ldots) rather than a calendar weekday. The heatmap still shows clear diurnal structure -- daytime hours consistently carry heavier submission volume than late-night hours across the trace's days -- which motivates keeping \texttt{hour\_of\_day} and \texttt{day\_of\_week} as predictive variables, but the figure should not be read as evidence of a specific weekly (Monday-Sunday) pattern.
 
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=0.75\textwidth]{figures/nb01-fig06-arrival-heatmap.png}
-\caption[Job arrival heatmap]{Heatmap of job arrivals per hour of the day and per day of the week (Monday = 0). The color intensity corresponds to the number of jobs submitted. Weekday daytime hours appear to be the most concentrated period for job submissions.}
+\caption[Job arrival heatmap]{Heatmap of job arrivals per hour of the day and per trace-relative day index (day 0 = the trace's first day). The color intensity corresponds to the number of jobs submitted. Daytime hours appear to be the most concentrated period for job submissions across the trace's $\sim$7.7 days; the y-axis is a trace-day counter, not a calendar weekday (see main text).}
 \label{fig:arrival-heatmap}
 \end{figure}
 
@@ -119,15 +119,15 @@ A clean dataset provides raw job characteristics; however, these raw values do n
 
 \subsection{Temporal Context Features}
 
-Submission timing for jobs is very much related to human behavior. Jobs are most often submitted during peak working hours, then drop off significantly when people leave work. Additionally, there are differences in submission timing for jobs based upon whether it is a weekday or a weekend. Temporal features have been created based on the submission timestamp for each job to understand these behaviors:
+Submission timing for jobs is very much related to human behavior: jobs are most often submitted during peak working hours, then drop off significantly overnight. Submission volume also varies from one day of the trace to the next, though the public trace release does not disclose its actual collection date, so this day-to-day variation cannot be attributed to a specific calendar weekday. Temporal features have been created based on the submission timestamp for each job to capture both patterns:
 
-\begin{itemize} 
+\begin{itemize}
     \item \texttt{arrival\_sec}: Time jobs arrive in the trace in relation to the start time. This produces a continuous time signal for tracking each job's position in the timeframe of the trace.
     \item \texttt{hour\_of\_day}: The hour of the day that a job is submitted; this is determined from the Unix timestamp.
-    \item \texttt{day\_of\_week}: The day of the week (0-6, where 0 is Monday) when a job is submitted.
-\end{itemize} 
+    \item \texttt{day\_of\_week}: An absolute, trace-relative day counter (0, 1, 2, \ldots) indicating which day of the roughly 7.7-day trace a job was submitted on -- not a calendar weekday. A true calendar-weekday encoding would fold the trace's first and eighth day onto the same value, which the undisclosed collection date makes unverifiable and which would introduce a leakage risk into the chronological train/test split (see the Limitations discussion in Chapter~\ref{chp:conclusion}).
+\end{itemize}
 
-These allow the models to recognize that both submission behavior and runtime distribution vary in a predictable manner throughout the day and week.
+These allow the models to recognize that both submission behavior and runtime distribution vary in a predictable manner throughout the day and across the trace.
 
 \clearpage
 \subsection{Resource Request Features}
@@ -180,7 +180,7 @@ Besides the numerical features, there were two primary categorical features that
     \item \texttt{gpu\_type}: This feature described the type of GPU architecture that was assigned to the job. Each type of GPU has its own unique processing throughput that will directly affect how long it takes for an executable to run.
 \end{itemize}
 
-The use of \texttt{category} data types allows LGBM to handle both categorical variables natively, thus eliminating the need to perform one-hot encoding and the associated memory usage. All other model types (XGB, RF, and all DL architectures) require numerical data. Therefore, the two categorical variables must be encoded using one-hot encoding.
+The use of \texttt{category} data types allows LightGBM to handle both categorical variables natively, thus eliminating the need to perform one-hot encoding and the associated memory usage. All other model types (XGBoost, Random Forest, and all DL architectures) require numerical data. Therefore, the two categorical variables must be encoded using one-hot encoding.
 
 %% ================================================================
 \needspace{5\baselineskip}
@@ -201,7 +201,7 @@ Table~\ref{tab:features} shows the full collection of numeric and categorical in
 \texttt{num\_inst} & Numeric & Number of instances used \\ 
 \texttt{arrival\_sec} & Numeric & Relative job arrival time (seconds) \\ 
 \texttt{hour\_of\_day} & Numeric (0-23) & Hour of the day \\ 
-\texttt{day\_of\_week} & Numeric (0-6) & Day of the week (0 = Monday) \\ 
+\texttt{day\_of\_week} & Numeric (0-7) & Trace-relative day index (not a calendar weekday) \\
 \texttt{cluster\_load\_cpu} & Numeric & Background CPU load at job arrival \\ 
 \texttt{cluster\_load\_gpu} & Numeric & Background GPU load at job arrival \\ 
 \texttt{active\_job\_count} & Numeric & Number of other active jobs at arrival \\ 
@@ -211,7 +211,7 @@ Table~\ref{tab:features} shows the full collection of numeric and categorical in
 \end{tabular}
 \end{table}
 
-Figure~\ref{fig:correlation} illustrates the Pearson correlation matrix of the numeric input features and the prediction target (\texttt{job\_runtime}). Human intuition may lead one to believe that greater CPU and GPU requests should result in longer execution durations; however, the Pearson correlation coefficient values for \texttt{num\_cpu} and \texttt{gpu\_demand} are remarkably small at 0.08 and 0.05, respectively. Strong correlations exist among the sweep-line cluster utilization features (\texttt{cluster\_load\_cpu}, \texttt{cluster\_load\_gpu}, \texttt{active\_job\_count}) up to a value of 0.83, demonstrating that these features describe the same cluster load phenomenon. Importantly, no single feature exhibits a strong linear relationship with the target variable. The lack of linear predictability provides the mathematical basis to deploy nonlinear predictors - specifically tree-based ensemble predictors (XGB, LGBM, RF) and deep neural networks (CNN, LSTM).
+Figure~\ref{fig:correlation} illustrates the Pearson correlation matrix of the numeric input features and the prediction target (\texttt{job\_runtime}). Human intuition may lead one to believe that greater CPU and GPU requests should result in longer execution durations; however, the Pearson correlation coefficient values for \texttt{num\_cpu} and \texttt{gpu\_demand} are remarkably small at 0.08 and 0.05, respectively. Strong correlations exist among the sweep-line cluster utilization features (\texttt{cluster\_load\_cpu}, \texttt{cluster\_load\_gpu}, \texttt{active\_job\_count}) up to a value of 0.89, demonstrating that these features describe the same cluster load phenomenon. Importantly, no single feature exhibits a strong linear relationship with the target variable. The lack of linear predictability provides the mathematical basis to deploy nonlinear predictors - specifically tree-based ensemble predictors (XGBoost, LightGBM, Random Forest) and deep neural networks (CNN, LSTM).
 
 \begin{figure}[htbp]
 \centering

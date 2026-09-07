@@ -1,16 +1,59 @@
 {
   "metrics": {
-    "mae": 5836.315867095861,
-    "rmse": 15056.701141875312,
-    "r2": 0.06418590052657325,
-    "mape": 6.514352751273521,
-    "mdae": 1576.0426025390625,
-    "train_time": 51.64214205741882
+    "mae": 6316.79091437509,
+    "mae_std": 200.74125520543242,
+    "rmse": 14645.144506333194,
+    "rmse_std": 190.4993635030672,
+    "r2": 0.11454553569314656,
+    "r2_std": 0.02307368315198669,
+    "mape": 1837.1132493650591,
+    "mape_std": 453.2974315759538,
+    "mdae": 2945.9174601236978,
+    "mdae_std": 413.73127428482667,
+    "train_time": 14.423578182856241,
+    "train_time_std": 3.036309056178206,
+    "n_seeds": 3,
+    "seeds": [
+      42,
+      1337,
+      2024
+    ],
+    "mae_seed0": 6165.995341961388,
+    "rmse_seed0": 14609.343709317003,
+    "r2_seed0": 0.1189687010690188,
+    "mape_seed0": 1761.3556248148625,
+    "mdae_seed0": 2787.521240234375,
+    "train_time_seed0": 16.520468950271606
   },
   "best_params": {
-    "hidden_size": 256,
-    "num_layers": 2,
-    "learning_rate": 0.0005,
-    "batch_size": 246
+    "hidden_size": 128,
+    "num_layers": 1,
+    "learning_rate": 0.0015,
+    "batch_size": 1024,
+    "dropout": 0.3
+  },
+  "feature_mode": "categorical_embedding",
+  "train_size": 65747,
+  "test_size": 16437,
+  "experiment": "exp_d",
+  "model": "lstm",
+  "timestamp": "2026-09-06T09:23:38.148604+00:00",
+  "status": "complete",
+  "provenance": {
+    "git_commit": "55a571f63a18b360cc2bdeb3929e01c794bb868d",
+    "src_sha256": {
+      "src/feature_engineering.py": "605f75d280da53a2fd5fa9e15b7beda56e3b90d749d7cd6614c808dcbf1d08e6",
+      "src/tuning.py": "4cdece86315a9612567ade8a1010002fb0a989cded6c0d1a972c9cbed7e8e257"
+    },
+    "data_sha256": "c1897f8341dba8552d002748565cc9d3efcac2268a5f6d7ef797e0e72b67393a",
+    "package_versions": {
+      "scikit-learn": "1.8.0",
+      "xgboost": "3.1.2",
+      "lightgbm": "4.6.0",
+      "torch": "2.11.0",
+      "numpy": "2.3.5",
+      "pandas": "2.3.3"
+    },
+    "device": "mps"
   }
 }

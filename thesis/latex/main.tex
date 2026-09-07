@@ -9,8 +9,10 @@
 \usepackage{xurl}
 \usepackage{algpseudocode}  % for algorithmic pseudocode (algorithmicx)
 \usepackage{tikz}
+\usepackage{etoolbox}
+\apptocmd{\thebibliography}{\interlinepenalty=10000\relax}{}{}
+\hypersetup{pdftitle={Multi-Paradigm Runtime Prediction and Heterogeneous Scheduling Optimization in Large-Scale GPU Clusters}, pdfauthor={Hasan U\u{g}ur \c{C}elebi}, pdfsubject={M.Sc. Thesis, Yeditepe University Graduate School}, pdfkeywords={GPU cluster scheduling, runtime prediction, machine learning, decision-focused learning, discrete-event simulation}}
 \usetikzlibrary{shapes.geometric, arrows.meta, positioning}
-% \documentclass[llm]{thesis}
 % \documentclass[proposal]{thesis}
 % \documentclass[followup]{thesis}
 
@@ -50,11 +52,11 @@
 
 % write your supervisors, co-supervisor(s), examiners
 % and their respective universities
-\supervisor{Dr. Onur Demir}{Yeditepe University}
+\supervisor{Assist. Prof. Dr. Onur Demir}{Yeditepe University}
 % \cosupervisori{Assoc. Prof. Dr. Name Surname}{Yeditepe University}
 % \cosupervisorii{Assoc. Prof. Dr. Name Surname}{Yeditepe University}
-\examineri{Prof. Dr. Name Surname}{Yeditepe University}   % TODO: replace with real examiner name
-\examinerii{Assoc. Prof. Dr. Name Surname}{Yeditepe University} % TODO: replace with real examiner name
+\examineri{Assoc. Prof. Dr. Dionysis Goularas}{Yeditepe University}
+\examinerii{Assist. Prof. Dr. Kamil Erdayandı}{Marmara University}
 % \examineriii{Assist. Prof. Dr. Name Surname}{Yeditepe University}
 % \examineriv{Assist. Prof. Dr. Name Surname}{Yeditepe University}
 % \examinerv{Assist. Prof. Dr. Name Surname}{Yeditepe University}

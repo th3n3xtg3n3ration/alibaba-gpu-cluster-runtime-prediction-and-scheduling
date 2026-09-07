@@ -155,3 +155,5 @@ GEMINI.md
 
 # GitHub workflows & configuration
 .github/
+# Result backups: local safety copies of trained artefacts, not part of the record.
+results/_backup*/

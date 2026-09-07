@@ -1,0 +1,40 @@
+{
+  "metrics": {
+    "mae": 3312.543469002859,
+    "rmse": 12814.884038162072,
+    "r2": 0.32210991016368684,
+    "mape": 171.623791811707,
+    "mdae": 416.0,
+    "pred_std": 9778.279585345592,
+    "pred_unique_frac": 0.22473687412544868,
+    "n_predictions": 16437,
+    "train_time": 0.0
+  },
+  "best_params": {
+    "estimator": "Alibaba pre-computed per-group duration estimate (group_dur / SJG), joined by (user, submit_time, duration)"
+  },
+  "feature_mode": "with_categorical_native",
+  "train_size": 65747,
+  "test_size": 16437,
+  "experiment": "exp_b",
+  "model": "alibaba_estimate_group",
+  "timestamp": "2026-09-06T11:55:49.916991+00:00",
+  "status": "complete",
+  "provenance": {
+    "git_commit": "e4c1b7cf404823f03387200e1f7f9b533238cc8b",
+    "src_sha256": {
+      "src/feature_engineering.py": "605f75d280da53a2fd5fa9e15b7beda56e3b90d749d7cd6614c808dcbf1d08e6",
+      "src/tuning.py": "06da3e7ae70badd121327539b962d8fa6477cc8ba402554baa233ea4f1040796"
+    },
+    "data_sha256": "3f3d6d191e58f3ae6e0a7daa1d520b9706a6fe8bed1f85bd9e771c9157651336",
+    "package_versions": {
+      "scikit-learn": "1.8.0",
+      "xgboost": "3.1.2",
+      "lightgbm": "4.6.0",
+      "torch": "2.11.0",
+      "numpy": "2.3.5",
+      "pandas": "2.3.3"
+    },
+    "device": "mps"
+  }
+}

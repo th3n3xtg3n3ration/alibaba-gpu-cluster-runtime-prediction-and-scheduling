@@ -36,6 +36,7 @@ from .scheduler_simulator import (
     FIFOScheduler,
     SJFScheduler,
     SJFPredScheduler,
+    SRFScheduler,
     ClusterSimulator,
 )
 from .multi_node_simulator import (
@@ -49,6 +50,7 @@ __all__ = [
     "FIFOScheduler",
     "SJFScheduler",
     "SJFPredScheduler",
+    "SRFScheduler",
     "ClusterSimulator",
     "Machine",
     "MultiNodeClusterSimulator",

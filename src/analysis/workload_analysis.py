@@ -103,7 +103,7 @@ def compute_basic_stats(job_df: pd.DataFrame) -> Dict[str, float]:
         Job-level table with at least:
 
         - ``job_runtime`` (float): job duration in seconds.
-        - ``gpu_demand``  (int):   GPUs requested.
+        - ``gpu_demand``  (float): GPUs requested; may be fractional.
         - ``arrival_time`` (datetime): submission timestamp.
 
     Returns
@@ -143,7 +143,10 @@ def compute_basic_stats(job_df: pd.DataFrame) -> Dict[str, float]:
         "p95_runtime": float(np.percentile(runtimes, 95)),
         "p99_runtime": float(np.percentile(runtimes, 99)),
         "mean_gpu_demand": float(np.mean(gpu_demand)),
-        "max_gpu_demand": int(np.max(gpu_demand)),
+        # float, not int: GPU requests are fractional on PAI (GPU sharing), and
+        # int() here would repeat the truncation that erased half the trace's
+        # GPU demand in build_job_table_from_sample.
+        "max_gpu_demand": float(np.max(gpu_demand)),
         "time_span_hours": time_span_hours,
     }
 

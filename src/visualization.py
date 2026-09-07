@@ -21,18 +21,10 @@ plot_scheduler_comparison
 from __future__ import annotations
 
 from pathlib import Path
-import math
-from typing import Dict, List, Optional
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from sklearn.metrics import (
-    mean_absolute_error,
-    mean_squared_error,
-    median_absolute_error,
-    r2_score,
-)
 
 
 __all__ = [

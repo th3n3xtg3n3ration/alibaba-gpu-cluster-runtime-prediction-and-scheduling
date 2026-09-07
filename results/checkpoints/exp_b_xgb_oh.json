@@ -1,23 +1,48 @@
 {
   "metrics": {
-    "mae": 3389.2637353934983,
-    "rmse": 11375.186957410306,
-    "r2": 0.50924240791379,
-    "mape": 10.797955900149711,
-    "mdae": 1128.88720703125,
-    "train_time": 30.103754997253418
+    "mae": 6053.956834884414,
+    "rmse": 14056.628683623758,
+    "r2": 0.18437173171907717,
+    "mape": 1889.2414439636714,
+    "mdae": 2754.630859375,
+    "train_time": 11.171863079071045,
+    "n_estimators_effective": 140
   },
   "best_params": {
-    "colsample_bylevel": 0.5,
+    "colsample_bylevel": 0.7,
     "colsample_bytree": 0.5,
     "gamma": 0.0,
-    "learning_rate": 0.075,
+    "learning_rate": 0.05,
     "max_delta_step": 0,
-    "max_depth": 15,
-    "min_child_weight": 1,
-    "n_estimators": 1000,
+    "max_depth": 8,
+    "min_child_weight": 5,
+    "n_estimators": 400,
     "reg_alpha": 0.0,
     "reg_lambda": 0.1,
     "subsample": 0.7
+  },
+  "feature_mode": "with_categorical_onehot",
+  "train_size": 65747,
+  "test_size": 16437,
+  "experiment": "exp_b",
+  "model": "xgb_oh",
+  "timestamp": "2026-09-06T09:23:30.406868+00:00",
+  "status": "complete",
+  "provenance": {
+    "git_commit": "55a571f63a18b360cc2bdeb3929e01c794bb868d",
+    "src_sha256": {
+      "src/feature_engineering.py": "605f75d280da53a2fd5fa9e15b7beda56e3b90d749d7cd6614c808dcbf1d08e6",
+      "src/tuning.py": "4cdece86315a9612567ade8a1010002fb0a989cded6c0d1a972c9cbed7e8e257"
+    },
+    "data_sha256": "c1897f8341dba8552d002748565cc9d3efcac2268a5f6d7ef797e0e72b67393a",
+    "package_versions": {
+      "scikit-learn": "1.8.0",
+      "xgboost": "3.1.2",
+      "lightgbm": "4.6.0",
+      "torch": "2.11.0",
+      "numpy": "2.3.5",
+      "pandas": "2.3.3"
+    },
+    "device": "mps"
   }
 }

@@ -1,0 +1,55 @@
+<html><head><meta charset="utf-8"><style>table{border-collapse:collapse;font-family:Arial,sans-serif;font-size:12px} td,th{border:1px solid #ccc;padding:6px 10px} th{background:#f0f0f0}</style></head><body><div>
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th>Model</th>
+      <th>Test MAE (s)</th>
+      <th>Test MdAE (s)</th>
+      <th>Test RMSE (s)</th>
+      <th>Test MAPE (%)</th>
+      <th>Test R²</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>LightGBM (Numeric)</td>
+      <td>5811.00</td>
+      <td>536.92</td>
+      <td>16486.03</td>
+      <td>332.53</td>
+      <td>-0.12</td>
+    </tr>
+    <tr>
+      <td>Random Forest (Numeric)</td>
+      <td>6796.98</td>
+      <td>3387.89</td>
+      <td>15374.96</td>
+      <td>2412.01</td>
+      <td>0.02</td>
+    </tr>
+    <tr>
+      <td>XGBoost (Numeric)</td>
+      <td>6968.35</td>
+      <td>4341.02</td>
+      <td>15458.66</td>
+      <td>2804.80</td>
+      <td>0.01</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+</div></body></html>

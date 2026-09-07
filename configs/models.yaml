@@ -12,6 +12,20 @@ features:
 #  MODEL DEFINITIONS
 # =====================================================================
 
+# Training loss per family. Everything downstream selects and reports on MAE
+# (tuning.common.scoring below, the results tables, notebook 05's champion
+# pick), and LightGBM minimises it. The other two do not, deliberately:
+# XGBoost's reg:absoluteerror starts from the training median and its
+# validation MAE worsens from round 3, so the final refit early-stops at 3-4
+# trees, R2 turns negative in both Experiment A and B and Exp A emits 25
+# distinct predictions over 16,437 test jobs -- a collapsed model, useless for
+# the ranking notebook 05 needs; and scikit-learn's absolute_error criterion
+# medians every candidate split, far too slow for a CV grid search at this row
+# count. See the _XGB_OBJECTIVE block in src/tuning.py for the measurements.
+# That asymmetry has to be stated wherever the three families are ranked
+# together, which is what the train_loss column in each checkpoint is for.
+# src/tuning.py is the operative copy of these three values -- this block is
+# read only by src/config_utils.load_model_config -- so the two must not drift.
 models:
   lgbm:
     model:
@@ -111,7 +125,7 @@ tuning:
 
   lstm:
     hidden_size: [128, 256]
-    num_layers: [2]
+    num_layers: [1, 2]
     learning_rate: [0.001, 0.005]
     batch_size: [256, 512, 1024]
     dropout: [0.2, 0.3]

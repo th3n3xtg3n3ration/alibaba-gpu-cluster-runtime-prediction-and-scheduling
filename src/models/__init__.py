@@ -27,10 +27,24 @@ RuntimePredictorLSTM
 RuntimePredictorCNNLSTM
     Hybrid CNN + LSTM architecture.
 
-Evaluation utility (see :mod:`src.models.evaluation`):
+Evaluation utilities (see :mod:`src.models.evaluation`):
 
 evaluate_regression
     Compute MAE, RMSE, R², MAPE, and MdAE for any prediction array.
+is_degenerate_prediction
+    Read the prediction-spread fields that ``evaluate_regression`` records and
+    report whether the model collapsed to a constant output. Exported next to
+    the function that writes those fields so a results table can consult it
+    without reaching past the package API -- the missing half of the guard was
+    what let a constant predictor be ranked as an ordinary model.
+is_near_constant_prediction
+    The weaker, non-excluding finding beside it: a model that does rank, but
+    out of only a handful of distinct values. Kept apart from the exclusion so
+    a coarse-but-working predictor is not reported as one that ranks nothing.
+prediction_ranks_nothing
+    The rule both of those and :class:`~src.simulation.SJFPredScheduler`'s
+    refusal are written in terms of, so the modelling and scheduling chapters
+    cannot reach opposite verdicts about the same model.
 
 These models are trained in:
     ``notebooks/04_runtime_prediction_models.ipynb``
@@ -42,7 +56,12 @@ and used for scheduling in:
 from .lgb_runtime_predictor import LightGBMPredictor
 from .xgb_runtime_predictor import XGBPredictor
 from .rf_runtime_predictor import RandomForestPredictor
-from .evaluation import evaluate_regression
+from .evaluation import (
+    evaluate_regression,
+    is_degenerate_prediction,
+    is_near_constant_prediction,
+    prediction_ranks_nothing,
+)
 
 # Deep learning models require PyTorch — import conditionally so the package
 # remains usable in CPU-only / non-DL environments.
@@ -62,8 +81,11 @@ __all__ = [
     "LightGBMPredictor",
     "XGBPredictor",
     "RandomForestPredictor",
-    # Evaluation utility (always available)
+    # Evaluation utilities (always available)
     "evaluate_regression",
+    "is_degenerate_prediction",
+    "is_near_constant_prediction",
+    "prediction_ranks_nothing",
     # Deep learning models (available when torch is installed)
     "RuntimePredictorCNN",
     "RuntimePredictorLSTM",

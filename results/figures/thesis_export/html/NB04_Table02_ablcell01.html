@@ -1,0 +1,71 @@
+<html><head><meta charset="utf-8"><style>table{border-collapse:collapse;font-family:Arial,sans-serif;font-size:12px} td,th{border:1px solid #ccc;padding:6px 10px} th{background:#f0f0f0}</style></head><body><div>
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th>Ablation</th>
+      <th>Dropped</th>
+      <th>Test MAE (s)</th>
+      <th>Test MdAE (s)</th>
+      <th>Test R²</th>
+      <th>Spearman rho</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Full feature set (reference)</td>
+      <td>(none)</td>
+      <td>4857.24</td>
+      <td>880.88</td>
+      <td>0.078</td>
+      <td>0.681</td>
+    </tr>
+    <tr>
+      <td>− cluster_load_cpu/gpu, active_job_count</td>
+      <td>cluster_load_cpu, cluster_load_gpu, active_job...</td>
+      <td>4779.76</td>
+      <td>826.73</td>
+      <td>0.093</td>
+      <td>0.686</td>
+    </tr>
+    <tr>
+      <td>− arrival_sec</td>
+      <td>arrival_sec</td>
+      <td>4834.17</td>
+      <td>919.88</td>
+      <td>0.083</td>
+      <td>0.677</td>
+    </tr>
+    <tr>
+      <td>− arrival_sec, day_of_week</td>
+      <td>arrival_sec, day_of_week</td>
+      <td>4834.32</td>
+      <td>931.79</td>
+      <td>0.080</td>
+      <td>0.677</td>
+    </tr>
+    <tr>
+      <td>− user</td>
+      <td>user</td>
+      <td>5791.40</td>
+      <td>529.85</td>
+      <td>-0.120</td>
+      <td>0.328</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+</div></body></html>

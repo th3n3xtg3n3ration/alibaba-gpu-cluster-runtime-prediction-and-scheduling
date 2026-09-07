@@ -4,9 +4,15 @@ channels:
   - pytorch
   - defaults
 
+# NOTE: the published results were produced with a venv, not this Conda
+# environment -- see requirements-lock.txt (a `pip freeze` of that venv) for
+# the authoritative, exactly-reproducible package set. This file gives an
+# equivalent environment at minimum supported versions and previously pinned
+# python=3.10, which never matched any environment this project actually ran
+# on (the venv is 3.11.6); corrected below (reproducibility-2).
 dependencies:
   # Python
-  - python=3.10
+  - python=3.11
 
   # Core scientific stack
   - numpy>=1.24.0

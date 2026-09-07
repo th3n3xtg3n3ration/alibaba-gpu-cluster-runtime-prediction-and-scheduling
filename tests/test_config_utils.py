@@ -7,7 +7,6 @@ Tests exercise the real configs/paths.yaml and configs/models.yaml files
 that ship with the project.
 """
 import unittest
-from pathlib import Path
 from src.config_utils import load_paths_config, load_model_config
 
 class TestConfigUtils(unittest.TestCase):

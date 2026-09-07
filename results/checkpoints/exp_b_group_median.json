@@ -1,0 +1,39 @@
+{
+  "metrics": {
+    "mae": 3369.144308572124,
+    "rmse": 12700.955180088447,
+    "r2": 0.33410969682569414,
+    "mape": 201.1865574474094,
+    "mdae": 462.0,
+    "train_time": 0.0
+  },
+  "best_params": {
+    "estimator": "median",
+    "grouping": "group",
+    "fitted_on": "train partition only"
+  },
+  "feature_mode": "with_categorical_native",
+  "train_size": 65747,
+  "test_size": 16437,
+  "experiment": "exp_b",
+  "model": "group_median",
+  "timestamp": "2026-09-06T11:09:26.821098+00:00",
+  "status": "complete",
+  "provenance": {
+    "git_commit": "4107ebd824f5c4a55f44f9ccefc9856ef5177c6d",
+    "src_sha256": {
+      "src/feature_engineering.py": "605f75d280da53a2fd5fa9e15b7beda56e3b90d749d7cd6614c808dcbf1d08e6",
+      "src/tuning.py": "06da3e7ae70badd121327539b962d8fa6477cc8ba402554baa233ea4f1040796"
+    },
+    "data_sha256": "c1897f8341dba8552d002748565cc9d3efcac2268a5f6d7ef797e0e72b67393a",
+    "package_versions": {
+      "scikit-learn": "1.8.0",
+      "xgboost": "3.1.2",
+      "lightgbm": "4.6.0",
+      "torch": "2.11.0",
+      "numpy": "2.3.5",
+      "pandas": "2.3.3"
+    },
+    "device": "mps"
+  }
+}

@@ -1,0 +1,283 @@
+<html><head><meta charset="utf-8"><style>table{border-collapse:collapse;font-family:Arial,sans-serif;font-size:12px} td,th{border:1px solid #ccc;padding:6px 10px} th{background:#f0f0f0}</style></head><body><div>
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th>Experiment</th>
+      <th>Architecture</th>
+      <th>MAE (s)</th>
+      <th>MAE (s) — std</th>
+      <th>MAE (s) — saved seed</th>
+      <th>MdAE (s)</th>
+      <th>MdAE (s) — std</th>
+      <th>MdAE (s) — saved seed</th>
+      <th>RMSE (s)</th>
+      <th>RMSE (s) — std</th>
+      <th>RMSE (s) — saved seed</th>
+      <th>MAPE (%)</th>
+      <th>MAPE (%) — std</th>
+      <th>MAPE (%) — saved seed</th>
+      <th>R²</th>
+      <th>R² — std</th>
+      <th>R² — saved seed</th>
+      <th>Seeds (n)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>C — Numeric</td>
+      <td>CNN</td>
+      <td>7040.17</td>
+      <td>268.47</td>
+      <td>6733.31</td>
+      <td>4159.03</td>
+      <td>628.10</td>
+      <td>3514.01</td>
+      <td>15624.08</td>
+      <td>16.73</td>
+      <td>15639.82</td>
+      <td>2661.06</td>
+      <td>279.32</td>
+      <td>2343.38</td>
+      <td>-0.01</td>
+      <td>0.00</td>
+      <td>-0.01</td>
+      <td>3</td>
+    </tr>
+    <tr>
+      <td>C — Numeric</td>
+      <td>LSTM</td>
+      <td>6688.74</td>
+      <td>61.02</td>
+      <td>6737.34</td>
+      <td>3592.33</td>
+      <td>95.31</td>
+      <td>3702.34</td>
+      <td>15471.66</td>
+      <td>6.52</td>
+      <td>15469.73</td>
+      <td>2448.74</td>
+      <td>60.83</td>
+      <td>2504.23</td>
+      <td>0.01</td>
+      <td>0.00</td>
+      <td>0.01</td>
+      <td>3</td>
+    </tr>
+    <tr>
+      <td>C — Numeric</td>
+      <td>CNN-LSTM</td>
+      <td>7230.19</td>
+      <td>653.18</td>
+      <td>7691.65</td>
+      <td>4512.31</td>
+      <td>1101.76</td>
+      <td>5486.31</td>
+      <td>15593.26</td>
+      <td>55.42</td>
+      <td>15568.76</td>
+      <td>2936.92</td>
+      <td>765.37</td>
+      <td>3456.47</td>
+      <td>-0.00</td>
+      <td>0.01</td>
+      <td>-0.00</td>
+      <td>3</td>
+    </tr>
+    <tr>
+      <td>D — Categorical</td>
+      <td>CNN</td>
+      <td>6524.73</td>
+      <td>144.92</td>
+      <td>6493.34</td>
+      <td>3345.99</td>
+      <td>470.21</td>
+      <td>3431.33</td>
+      <td>14837.29</td>
+      <td>393.00</td>
+      <td>14521.55</td>
+      <td>2239.79</td>
+      <td>108.09</td>
+      <td>2178.62</td>
+      <td>0.09</td>
+      <td>0.05</td>
+      <td>0.13</td>
+      <td>3</td>
+    </tr>
+    <tr>
+      <td>D — Categorical</td>
+      <td>LSTM</td>
+      <td>6316.79</td>
+      <td>200.74</td>
+      <td>6166.00</td>
+      <td>2945.92</td>
+      <td>413.73</td>
+      <td>2787.52</td>
+      <td>14645.14</td>
+      <td>190.50</td>
+      <td>14609.34</td>
+      <td>1837.11</td>
+      <td>453.30</td>
+      <td>1761.36</td>
+      <td>0.11</td>
+      <td>0.02</td>
+      <td>0.12</td>
+      <td>3</td>
+    </tr>
+    <tr>
+      <td>D — Categorical</td>
+      <td>CNN-LSTM</td>
+      <td>6929.09</td>
+      <td>651.52</td>
+      <td>7127.38</td>
+      <td>3772.26</td>
+      <td>1157.61</td>
+      <td>4297.03</td>
+      <td>14859.82</td>
+      <td>224.20</td>
+      <td>14612.98</td>
+      <td>2356.55</td>
+      <td>881.77</td>
+      <td>2949.71</td>
+      <td>0.09</td>
+      <td>0.03</td>
+      <td>0.12</td>
+      <td>3</td>
+    </tr>
+    <tr>
+      <td>E — Numeric (Sequence)</td>
+      <td>CNN</td>
+      <td>6703.64</td>
+      <td>213.00</td>
+      <td>6594.42</td>
+      <td>3470.14</td>
+      <td>241.28</td>
+      <td>3318.04</td>
+      <td>15718.00</td>
+      <td>47.79</td>
+      <td>15771.86</td>
+      <td>2371.54</td>
+      <td>284.01</td>
+      <td>2180.90</td>
+      <td>-0.02</td>
+      <td>0.01</td>
+      <td>-0.03</td>
+      <td>3</td>
+    </tr>
+    <tr>
+      <td>E — Numeric (Sequence)</td>
+      <td>LSTM</td>
+      <td>6844.75</td>
+      <td>117.47</td>
+      <td>6898.82</td>
+      <td>3762.03</td>
+      <td>295.14</td>
+      <td>3928.17</td>
+      <td>15573.61</td>
+      <td>27.25</td>
+      <td>15556.54</td>
+      <td>2504.15</td>
+      <td>197.06</td>
+      <td>2610.09</td>
+      <td>-0.00</td>
+      <td>0.00</td>
+      <td>0.00</td>
+      <td>3</td>
+    </tr>
+    <tr>
+      <td>E — Numeric (Sequence)</td>
+      <td>CNN-LSTM</td>
+      <td>6716.67</td>
+      <td>266.46</td>
+      <td>6477.21</td>
+      <td>3817.59</td>
+      <td>561.11</td>
+      <td>3254.01</td>
+      <td>15674.71</td>
+      <td>73.49</td>
+      <td>15739.30</td>
+      <td>2415.03</td>
+      <td>359.19</td>
+      <td>2058.62</td>
+      <td>-0.01</td>
+      <td>0.01</td>
+      <td>-0.02</td>
+      <td>3</td>
+    </tr>
+    <tr>
+      <td>F — Categorical (Sequence)</td>
+      <td>CNN</td>
+      <td>6464.84</td>
+      <td>218.45</td>
+      <td>6292.69</td>
+      <td>3621.12</td>
+      <td>298.97</td>
+      <td>3375.84</td>
+      <td>15315.53</td>
+      <td>67.00</td>
+      <td>15388.48</td>
+      <td>2190.86</td>
+      <td>271.18</td>
+      <td>1951.52</td>
+      <td>0.03</td>
+      <td>0.01</td>
+      <td>0.02</td>
+      <td>3</td>
+    </tr>
+    <tr>
+      <td>F — Categorical (Sequence)</td>
+      <td>LSTM</td>
+      <td>6137.18</td>
+      <td>256.60</td>
+      <td>5953.65</td>
+      <td>2555.25</td>
+      <td>717.98</td>
+      <td>2179.63</td>
+      <td>14528.68</td>
+      <td>154.57</td>
+      <td>14607.49</td>
+      <td>1604.51</td>
+      <td>447.38</td>
+      <td>1429.30</td>
+      <td>0.13</td>
+      <td>0.02</td>
+      <td>0.12</td>
+      <td>3</td>
+    </tr>
+    <tr>
+      <td>F — Categorical (Sequence)</td>
+      <td>CNN-LSTM</td>
+      <td>6387.03</td>
+      <td>585.63</td>
+      <td>6068.89</td>
+      <td>3057.63</td>
+      <td>1351.63</td>
+      <td>2212.76</td>
+      <td>15236.33</td>
+      <td>176.81</td>
+      <td>15236.31</td>
+      <td>1957.24</td>
+      <td>854.88</td>
+      <td>1570.81</td>
+      <td>0.04</td>
+      <td>0.02</td>
+      <td>0.04</td>
+      <td>3</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+</div></body></html>
