@@ -37,15 +37,12 @@ from .scheduler_simulator import SchedulerBase
 # can be computed, but must not be replaced by the true runtime.
 _MIN_ESTIMATE = 1.0
 
-# Denominator floor for bounded slowdown (Feitelson & Rudolph): turnaround /
-# max(runtime, BOUNDED_SLOWDOWN_TAU). Unbounded slowdown (turnaround / runtime)
-# lets sub-tau jobs dominate the mean: a 1s job waiting a few hours already
-# posts a slowdown in the thousands, so mean unbounded slowdown mostly
-# reflects how this handful of very short jobs fared, not overall queueing
-# behaviour (statistics-8 / simulator-9). 10s follows the same literature's
-# common choice; both metrics are reported side by side rather than one
-# replacing the other, so this floor changes nothing about turnaround_time or
-# the unbounded `slowdown` column itself.
+# Denominator floor for bounded slowdown, Feitelson and Rudolph: turnaround /
+# max(runtime, BOUNDED_SLOWDOWN_TAU). Unbounded slowdown lets sub-tau jobs
+# dominate the mean, since a 1s job waiting a few hours already posts a slowdown
+# in the thousands. 10s follows the same literature's common choice. Both metrics
+# are reported side by side, so this floor changes nothing about turnaround_time
+# or the unbounded slowdown column.
 BOUNDED_SLOWDOWN_TAU = 10.0
 
 __all__ = [
@@ -118,8 +115,8 @@ class JobEvent:
         two events sharing a timestamp pop in whatever order the heap's
         internal layout happens to produce, not necessarily the order they
         were pushed in. For simultaneous ARRIVALs this made FIFO's "earliest
-        arrival first" tie-break effectively random (simulator-4); ``seq``
-        (assigned in push order by the simulator) makes it deterministic.
+        arrival first" tie-break effectively random; ``seq``
+        makes it deterministic, assigned in push order by the simulator.
     """
 
     time: float
@@ -170,14 +167,13 @@ class Machine:
         self.gpu_used: float = 0.0
         self.mem_used: float = 0.0
         self.running_jobs: List[Any] = []
-        # (expected_finish, cpu, gpu, job_id) per running job. "Expected" means
-        # the scheduler's estimate, not ground truth: EASY backfilling reserves
-        # a future window from what it believes the running jobs will take, so
-        # a poor runtime estimate degrades backfill quality exactly as it does
-        # in a production scheduler. Actual completion always uses the true
-        # runtime. job_id is carried so release() can drop the exact record for
-        # the job that finished, rather than any other running job that
-        # happens to request the same (cpu, gpu) footprint.
+        # (expected_finish, cpu, gpu, job_id) per running job. Expected means the
+        # scheduler's estimate, not ground truth: EASY backfilling reserves a
+        # future window from what it believes the running jobs will take, so a
+        # poor runtime estimate degrades backfill quality as it does in a
+        # production scheduler. Actual completion always uses the true runtime.
+        # job_id is carried so release() drops the record for the job that
+        # finished rather than another job with the same footprint.
         self.running_detail: List[Tuple[float, float, float, Any]] = []
 
     def can_fit(
@@ -230,11 +226,10 @@ class Machine:
         job_id = job["job_id"]
         if job_id in self.running_jobs:
             self.running_jobs.remove(job_id)
-        # Drop this job's own reservation record, by job_id -- not by (cpu,
-        # gpu) footprint, which two concurrently running jobs can share. A
-        # footprint match could previously delete a *different*, still-running
-        # job's record instead of the one that actually finished, leaving a
-        # stale entry that corrupts later earliest_fit()/backfill decisions.
+        # Drop this job's own reservation record, by job_id, not by footprint,
+        # which two concurrently running jobs can share. A footprint match could
+        # delete a different, still-running job's record and leave a stale entry
+        # that corrupts later earliest_fit and backfill decisions.
         for i, (_, _c, _g, jid) in enumerate(self.running_detail):
             if jid == job_id:
                 self.running_detail.pop(i)
@@ -254,9 +249,8 @@ class Machine:
         if self.can_fit(job_cpu, job_gpu):
             return now
         freed_cpu = freed_gpu = 0.0
-        # Sort by finish time only: two records can legitimately share the
-        # same finish/cpu/gpu, and job_id (the 4th field) has no meaningful
-        # ordering here.
+        # Sort by finish time only: two records can share the same finish, cpu
+        # and gpu, and job_id has no meaningful ordering here.
         for finish, c, g, _jid in sorted(self.running_detail, key=lambda rec: rec[0]):
             freed_cpu += c
             freed_gpu += g
@@ -312,9 +306,9 @@ class MultiNodeClusterSimulator:
         self.results: List[dict] = []
         self.utilization_history: List[dict] = []
         self.backfilled_jobs: int = 0
-        # How many backfills actually had to respect the reservation window.
-        # If this stays near zero the estimate quality cannot influence results,
-        # and any 'estimates do not matter' conclusion would be an artefact.
+        # How many backfills had to respect the reservation window. If this stays
+        # near zero the estimate quality cannot influence results, and any
+        # conclusion that estimates do not matter would be an artefact.
         self.backfilled_on_reserved: int = 0
 
     def _estimate(self, job: pd.Series) -> float:
@@ -330,13 +324,12 @@ class MultiNodeClusterSimulator:
         col = self.estimate_col
         if col and col in job.index:
             v = _finite(job[col])
-            # A prediction column is present, so this policy must live with what
-            # its model produced. Regressors trained on an unbounded target do
-            # emit negatives; falling back to the true runtime here would hand
-            # exactly those jobs an oracle-quality reservation window, which
-            # flatters whichever model produces the most negative predictions.
-            # A non-positive prediction means "essentially instant", so that is
-            # what the window is built from.
+            # A prediction column is present, so this policy lives with what its
+            # model produced. Regressors trained on an unbounded target do emit
+            # negatives; falling back to the true runtime would hand exactly
+            # those jobs an oracle-quality window and flatter whichever model
+            # produces the most negative predictions. A non-positive prediction
+            # means essentially instant, so that is what the window is built from.
             return v if v > 0 else _MIN_ESTIMATE
         # No prediction column at all (FIFO, SRF, SJF-Oracle): these policies
         # have no model of their own and are given the true runtime.
@@ -368,9 +361,9 @@ class MultiNodeClusterSimulator:
         ordered = self.scheduler.order_jobs(pending_df)
         if self.backfill_depth:
             # SLURM caps how many queued jobs its backfill scheduler examines per
-            # cycle (bf_max_job_test, default 100) because an unbounded scan is
+            # cycle, bf_max_job_test, default 100, because an unbounded scan is
             # too costly on a busy queue. Mirroring that keeps the simulation
-            # both tractable and faithful to production behaviour.
+            # tractable and faithful to production behaviour.
             ordered = ordered.head(self.backfill_depth)
 
         cpus = ordered["num_cpu"].to_numpy(dtype=float) if "num_cpu" in ordered.columns \
@@ -381,9 +374,9 @@ class MultiNodeClusterSimulator:
         ests = ordered[self.estimate_col].to_numpy(dtype=float) \
             if self.estimate_col in ordered.columns else ordered["runtime"].to_numpy(dtype=float)
         if self.estimate_col in ordered.columns:
-            # Same rule as _estimate(): a non-positive prediction is clamped, not
+            # Same rule as _estimate: a non-positive prediction is clamped, not
             # replaced by ground truth, so the shadow-time check and the booking
-            # in allocate() agree and no model is rewarded for emitting negatives.
+            # in allocate agree and no model is rewarded for emitting negatives.
             ests = np.where(np.isfinite(ests) & (ests > 0), ests, _MIN_ESTIMATE)
         else:
             _rt = ordered["runtime"].to_numpy(dtype=float)
@@ -424,7 +417,7 @@ class MultiNodeClusterSimulator:
             - ``submit_time``  (float, seconds)
             - ``runtime``      (float, seconds)
             - ``num_cpu``      (float, optional)
-            - ``num_gpu`` or ``gpu_demand`` (float, optional) -- GPU request per
+            - ``num_gpu`` or ``gpu_demand`` (float, optional): GPU request per
               job; may be fractional, since Alibaba PAI supports GPU sharing.
             - ``predicted_runtime`` (float, optional, for SJF-Pred)
 
@@ -436,17 +429,16 @@ class MultiNodeClusterSimulator:
             - ``job_id``, ``submit_time``, ``start_time``
             - ``completion_time``, ``waiting_time``, ``turnaround_time``
             - ``slowdown`` (unbounded, turnaround / runtime), ``bounded_slowdown``
-              (turnaround / max(runtime, BOUNDED_SLOWDOWN_TAU) -- see that
+              (turnaround / max(runtime, BOUNDED_SLOWDOWN_TAU), see that
               constant's docstring for why both are reported), ``machine_id``
         """
         # Once, before any state is reset: a policy that ranks on a data column
-        # checks here that the column can rank at all -- a constant prediction
-        # reproduces FIFO under the ML policy's name (see
-        # SJFPredScheduler.validate_workload). That case raises
+        # checks here that the column can rank at all. A constant prediction
+        # reproduces FIFO under the ML policy's name and raises
         # DegeneratePredictionError, the one exception a caller replaying many
-        # policies is meant to catch and record as a refused policy; the
-        # capacity ValueError and the completeness RuntimeError below are
-        # deliberately different types, since neither is a reportable result.
+        # policies is meant to catch and record as a refused policy. The capacity
+        # ValueError and the completeness RuntimeError below are different types,
+        # since neither is a reportable result.
         self.scheduler.validate_workload(jobs)
 
         # Reset state
@@ -464,15 +456,12 @@ class MultiNodeClusterSimulator:
             m.running_detail = []
 
         # A job requesting more than any single machine's total capacity can
-        # never be placed: the event queue eventually empties with it (and
-        # everything queued behind it, under a strict-HoL policy) still in
-        # pending_df, and the loop below exits with those jobs silently
-        # missing from the returned results -- a caller comparing len(jobs)
-        # against len(results) would have no other signal that this
-        # happened (simulator-6 / code_bugs-7). Not triggered by the trace
-        # this thesis uses (max num_cpu=90 <= 96, max gpu_demand=8 <= 8), but
-        # silent under a different cluster profile or workload, so it is
-        # checked explicitly rather than left to be discovered downstream.
+        # never be placed. The event queue eventually empties with it, and
+        # everything queued behind it under a strict head-of-line policy, still
+        # in pending_df, and the loop below exits with those jobs missing from
+        # the returned results. The trace this thesis uses does not trigger it,
+        # max num_cpu 90 of 96 and max gpu_demand 8 of 8, but a different cluster
+        # profile would, so it is checked explicitly.
         max_cpu_capacity = max((m.cpu_capacity for m in self.machines), default=0.0)
         max_gpu_capacity = max((m.gpu_capacity for m in self.machines), default=0.0)
         for _, job in jobs.iterrows():
@@ -486,10 +475,9 @@ class MultiNodeClusterSimulator:
                     "never be scheduled and would silently vanish from the results."
                 )
 
-        # Seed event queue with all arrivals. seq is a monotonic tie-breaker
-        # for heapq comparisons at equal timestamps (see JobEvent.seq); using
-        # a single counter across both ARRIVAL and FINISH pushes below keeps
-        # tie-breaking consistent for the whole run.
+        # Seed event queue with all arrivals. seq is a monotonic tie-breaker for
+        # heapq comparisons at equal timestamps; a single counter across both
+        # ARRIVAL and FINISH pushes keeps tie-breaking consistent for the run.
         _seq = itertools.count()
         events: List[JobEvent] = []
         for _, job in jobs.iterrows():
@@ -608,18 +596,16 @@ class MultiNodeClusterSimulator:
                     machine.release(event.job, req_cpu, req_gpu)
 
         # Close the history at the makespan. Snapshots are taken at the top of
-        # the loop, before the clock advances, so the loop exits one event
-        # short: the last recorded time is the second-to-last event, never the
-        # final completion. Consumers integrate this history as a left Riemann
-        # sum (each snapshot's value holds until the next one), which then both
-        # drops the drain interval and never weights the last snapshot's value
-        # at all -- the tail of a run is precisely when the cluster empties, so
-        # time-weighted utilization came out too high: 0.51% of the makespan
-        # went unmeasured on a backfilled 800-job run (gpu_util 0.8804 instead
-        # of 0.8765), and 2-3% on shorter replays. With this terminating
-        # snapshot the left sum reproduces the analytic integral
-        # sum(runtime*gpu) / (makespan * capacity) to machine precision. Its
-        # own value carries zero duration by construction.
+        # the loop, before the clock advances, so the loop exits one event short
+        # and the last recorded time is the second-to-last event. Consumers
+        # integrate this history as a left Riemann sum, which both drops the
+        # drain interval and never weights the last snapshot at all. The tail of
+        # a run is precisely when the cluster empties, so time-weighted
+        # utilization came out too high: 0.51% of the makespan went unmeasured on
+        # a backfilled 800-job run, gpu_util 0.8804 instead of 0.8765, and 2 to
+        # 3% on shorter replays. With this terminating snapshot the left sum
+        # reproduces sum(runtime*gpu) / (makespan * capacity) to machine
+        # precision. Its own value carries zero duration by construction.
         cpu_util, gpu_util = self._get_avg_utilization()
         self.utilization_history.append(
             {
@@ -630,10 +616,9 @@ class MultiNodeClusterSimulator:
             }
         )
 
-        # Defense in depth alongside the pre-flight capacity check above: if
-        # any job is still missing from the results for a reason that check
-        # didn't anticipate, fail loudly rather than silently return a
-        # shorter-than-expected table (simulator-6 / code_bugs-7).
+        # Defense in depth alongside the pre-flight capacity check above. If any
+        # job is still missing from the results for a reason that check did not
+        # anticipate, fail loudly rather than return a shorter table.
         if len(self.results) != len(jobs):
             missing = set(jobs["job_id"]) - {r["job_id"] for r in self.results}
             raise RuntimeError(

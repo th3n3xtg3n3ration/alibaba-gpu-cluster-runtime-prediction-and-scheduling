@@ -51,7 +51,7 @@ def _record_current_model_inputs(model_dir, checkpoint="exp_a_rf",
     Written through ``src.tuning``'s own recording functions rather than by
     hand: the gate under test asks that module's predicates, so a hand-built
     record would keep certifying itself even if the two halves drifted apart.
-    The artifact's bytes are never read — only the sidecar beside it is.
+    The artifact's bytes are never read, only the sidecar beside it is.
     """
     T.save_checkpoint(checkpoint, {"metrics": {"mae": 1.0}}, recomputed=True)
     path = model_dir / artifact
@@ -65,7 +65,7 @@ def _freeze_provenance(case):
 
     The verdict has to depend on the records the test writes, not on whether an
     unrelated file in src/ was saved between the moment a record was written and
-    the moment the gate read it back — which really does happen while the suite
+    the moment the gate read it back, which really does happen while the suite
     runs and would make a passing gate look broken. Everything the gate itself
     uses stays real: the sidecars, the checkpoints and both currency predicates.
     """
@@ -276,7 +276,7 @@ class TestExportDirectoriesAreSeparatedByLanguage(unittest.TestCase):
     NOTEBOOKS_TR reuses the prefixes NB01…NB05_256GPU, and _clean_stale_exports
     deletes by prefix with no language filter, so while both wrote into one
     directory a `--lang tr` run deleted the English figures and replaced the
-    English tables with Turkish ones under identical names — silently, and with
+    English tables with Turkish ones under identical names, silently, and with
     exit status 0. It was not even a like-for-like swap: the table position
     index differs between the mirrors, so one filename changed from one
     benchmark table to a different one.
@@ -435,7 +435,7 @@ class _PipelineCase(unittest.TestCase):
     everything under the export directories.
 
     ``PREFIX`` says which notebook the single fixture notebook stands in for,
-    because the pipeline does not treat them alike — NB01 passes the gates that
+    because the pipeline does not treat them alike, NB01 passes the gates that
     judge a notebook against itself, while NB04 and both NB05 variants are
     additionally judged against the model provenance records (see
     ``TestModelDerivedNotebooksAreJudgedOnProvenance``).
@@ -482,7 +482,7 @@ class _PipelineCase(unittest.TestCase):
         """Run the pipeline expecting it to end non-zero; returns the reason.
 
         The console output is kept in ``self.output`` too: the exception lists
-        one line per refused notebook, while WHICH record or figure was at
+        one line per refused notebook, while which record or figure was at
         fault is in the warning block printed above it.
         """
         buffer = io.StringIO()
@@ -505,12 +505,12 @@ class TestRunPipelineAssemblesTheGuards(_PipelineCase):
     `refusals.append` calls after the two returned reasons deleted, the
     untrusted-outputs handler's append deleted, and `_export_dirs(lang)`
     replaced by `_export_dirs("en")`. Each one restores exactly the failure the
-    class above is named after — run_all_experiments.sh printing "PIPELINE
+    class above is named after, run_all_experiments.sh printing "PIPELINE
     COMPLETED SUCCESSFULLY" over an export that skipped a notebook, or over
     English thesis figures replaced by Turkish ones.
     """
 
-    # -- the run that must succeed ------------------------------------------
+    #, the run that must succeed ------------------------------------------
     # Without it every assertion below is satisfiable by a pipeline that
     # refuses everything, which is the deadlock shape this repository has
     # already shipped once.
@@ -521,7 +521,7 @@ class TestRunPipelineAssemblesTheGuards(_PipelineCase):
         self.assertEqual(self._exported(), [self.export_name])
         self.assertTrue((self.module.THESIS_FIG_DIR / self.thesis_figure).exists())
 
-    # -- and the four ways it must not ---------------------------------------
+    #, and the four ways it must not ---------------------------------------
 
     def test_a_figure_count_mismatch_ends_the_run(self):
         self._write_notebook("en", "nb_en.ipynb",
@@ -543,7 +543,7 @@ class TestRunPipelineAssemblesTheGuards(_PipelineCase):
         and wrote nothing back: a default run took out ten PNGs and eight NB04
         tables while printing a message telling the reader to compare against
         them. The other refusal tests all start from an empty export directory,
-        where "nothing written" and "everything deleted" look identical -- which
+        where "nothing written" and "everything deleted" look identical, which
         is why this shipped.
         """
         previous = self.png_dir / self.export_name
@@ -566,7 +566,7 @@ class TestRunPipelineAssemblesTheGuards(_PipelineCase):
 
         Export filenames are positional, so a run producing fewer figures than
         the last one would otherwise leave stale higher-numbered files behind
-        (figures_tables-14). Deferring the deletion must not lose that.
+         Deferring the deletion must not lose that.
         """
         stale = self.png_dir / self.stale_export_name
         stale.parent.mkdir(parents=True, exist_ok=True)
@@ -579,7 +579,7 @@ class TestRunPipelineAssemblesTheGuards(_PipelineCase):
         self.assertEqual(self._exported(), [self.export_name])
 
     def test_a_figure_from_the_wrong_cell_ends_the_run(self):
-        # The count still matches, so only the pinned cell id catches this --
+        # The count still matches, so only the pinned cell id catches this,
         # and a mislabeled thesis figure is worse than a stale one.
         self._write_notebook("en", "nb_en.ipynb", [_figure_cell("moved", 1)])
         message = self._refuse()
@@ -597,7 +597,7 @@ class TestRunPipelineAssemblesTheGuards(_PipelineCase):
         self.assertEqual(self._exported(), [])
 
     def test_a_notebook_with_no_stored_outputs_ends_the_run(self):
-        # It contributed nothing, so the run did not refresh it -- a gap, not a
+        # It contributed nothing, so the run did not refresh it, a gap, not a
         # success with a warning in it.
         self._write_notebook("en", "nb_en.ipynb", [
             {"cell_type": "code", "id": "figcell", "execution_count": None,
@@ -606,7 +606,7 @@ class TestRunPipelineAssemblesTheGuards(_PipelineCase):
         message = self._refuse()
         self.assertIn("nb_en.ipynb", message)
 
-    # -- the two languages ---------------------------------------------------
+    #, the two languages ---------------------------------------------------
 
     def test_a_turkish_run_leaves_the_english_export_untouched(self):
         """Both languages produce the same positional filenames.
@@ -635,7 +635,7 @@ class TestRunPipelineAssemblesTheGuards(_PipelineCase):
 
     def test_a_turkish_run_never_writes_thesis_figures(self):
         # The thesis is English, and THESIS_FIGURE_MAP's pinned ids are the
-        # English notebooks' -- the Turkish mirrors carry different ones.
+        # English notebooks', the Turkish mirrors carry different ones.
         self._write_notebook("tr", "nb_tr.ipynb", [_figure_cell("trcell", 1)])
         self._run(lang="tr")
         self.assertFalse((self.module.THESIS_FIG_DIR / self.thesis_figure).exists())
@@ -646,13 +646,13 @@ class TestModelDerivedNotebooksAreJudgedOnProvenance(_PipelineCase):
 
     ``_audit_stored_outputs`` judges a notebook against itself, so it cannot see
     a SOURCE change made after the run: on the default no-``--execute`` path the
-    script harvested whatever notebook 04/05 happened to have stored — produced
-    under any earlier source tree — and copied the mapped figures straight into
+    script harvested whatever notebook 04/05 happened to have stored, produced
+    under any earlier source tree, and copied the mapped figures straight into
     thesis/latex/figures. ``_stale_model_inputs`` closes that last hop by asking
     the same predicate the notebooks' own ``if ckpt:`` branches use.
 
-    Nothing covered it. With ``MODEL_DERIVED_PREFIXES = frozenset()`` — the
-    behaviour before the gate existed — the whole suite stayed green while a run
+    Nothing covered it. With ``MODEL_DERIVED_PREFIXES = frozenset()``, the
+    behaviour before the gate existed, the whole suite stayed green while a run
     rebuilt notebook 04's five mapped thesis figures from outputs produced under
     a superseded source tree, and run_all_experiments.sh reported PIPELINE
     COMPLETED SUCCESSFULLY over them.
@@ -682,7 +682,7 @@ class TestModelDerivedNotebooksAreJudgedOnProvenance(_PipelineCase):
         _patch_attr(self, T, "_CHECKPOINT_DIR", ckpt_dir)
         self.module.MODEL_DIR = self.model_dir
         _freeze_provenance(self)
-        # _stale_model_inputs puts BASE_DIR — here a temporary directory — on
+        # _stale_model_inputs puts BASE_DIR, here a temporary directory, on
         # sys.path so it can import src.tuning; the entry would otherwise
         # outlive the directory it names.
         saved = list(sys.path)
@@ -697,7 +697,7 @@ class TestModelDerivedNotebooksAreJudgedOnProvenance(_PipelineCase):
                 [_figure_cell("figcell", 1, source=_SAVE_CELL_SOURCE)],
             )
 
-    # -- the run that must succeed ------------------------------------------
+    #, the run that must succeed ------------------------------------------
 
     def test_a_current_record_lets_the_notebook_through(self):
         # Without this every refusal below is satisfiable by a gate that refuses
@@ -716,12 +716,12 @@ class TestModelDerivedNotebooksAreJudgedOnProvenance(_PipelineCase):
         self._run()
         self.assertTrue((self.module.THESIS_FIG_DIR / self.thesis_figure).exists())
 
-    # -- and the ways it must not --------------------------------------------
+    #, and the ways it must not --------------------------------------------
 
     def test_a_stamped_artifact_the_scan_did_not_name_is_still_judged(self):
         # Which files get judged is read out of the notebooks' own source, so
         # any save cell that stops spelling MODEL_DIR / "<name>" the way
-        # _loaded_model_artifacts parses it -- a variable, a helper, a rename --
+        # _loaded_model_artifacts parses it, a variable, a helper, a rename,
         # would drop that file out of the judged set while its provenance record
         # sits right beside it, and the gate would narrow itself in silence.
         # The sidecar is the floor: a stamped file stays judged whatever the
@@ -784,7 +784,7 @@ class TestModelDerivedNotebooksAreJudgedOnProvenance(_PipelineCase):
             self._refuse()
         self.assertFalse((self.module.THESIS_FIG_DIR / self.thesis_figure).exists())
 
-    # -- the two languages ---------------------------------------------------
+    #, the two languages ---------------------------------------------------
 
     def test_a_turkish_run_is_judged_too(self):
         # The Turkish notebooks report the same model results out of the same
@@ -801,7 +801,7 @@ class TestTheJudgedNotebooksAreTheModelDerivedOnes(unittest.TestCase):
     """MODEL_DERIVED_PREFIXES is maintained by hand beside the notebook lists.
 
     A prefix renamed in NOTEBOOKS_EN/TR and not here leaves the gate matching
-    nothing for that notebook — the same hole as deleting it, and just as
+    nothing for that notebook, the same hole as deleting it, and just as
     silent, because every other gate still passes.
     """
 

@@ -159,7 +159,7 @@ class TestSelfRunCollectsTheWholeFile(unittest.TestCase):
 
     ``unittest.main()`` collects the module as it stands at that moment, so any
     class defined after the call simply does not exist yet. The run still
-    prints OK -- with a lower test count that nothing compares against.
+    prints OK, with a lower test count that nothing compares against.
     """
 
     def test_the_main_block_is_the_last_thing_in_every_test_file(self):

@@ -3,7 +3,7 @@ tests/test_simulation.py
 
 Unit tests for src.simulation.
 
-Verifies the correctness of the discrete-event simulator and 
+Verifies the correctness of the discrete-event simulator and
 scheduling policies (FIFO, SJF) using deterministic workloads.
 """
 import unittest
@@ -27,7 +27,7 @@ class TestSimulation(unittest.TestCase):
         })
         sim = ClusterSimulator(FIFOScheduler())
         res = sim.run(jobs)
-        
+
         # FIFO: Job 1 starts at 0, ends at 10. Job 2 starts at 10 (since 10 > 5), ends at 20.
         self.assertEqual(res.iloc[0]["start_time"], 0.0)
         self.assertEqual(res.iloc[1]["start_time"], 10.0)
@@ -42,7 +42,7 @@ class TestSimulation(unittest.TestCase):
         })
         sim = ClusterSimulator(SJFScheduler())
         res = sim.run(jobs)
-        
+
         # SJF: Job 2 (runtime 5) should go first
         self.assertEqual(res.iloc[0]["job_id"], 2)
         self.assertEqual(res.iloc[0]["completion_time"], 5.0)
@@ -78,7 +78,7 @@ class TestSimulation(unittest.TestCase):
         (cpu, gpu) alone and removed the *first* matching entry in
         running_detail, so releasing job B here (allocated second, with a
         later expected_finish) would incorrectly delete job A's still-live
-        reservation instead -- corrupting earliest_fit()'s backfill window
+        reservation instead, corrupting earliest_fit()'s backfill window
         for every job still running on this machine.
         """
         machine = Machine(machine_id=0, cpu_capacity=8.0, gpu_capacity=4.0)
@@ -90,7 +90,7 @@ class TestSimulation(unittest.TestCase):
         machine.allocate(job_b, job_cpu=2.0, job_gpu=1.0, expected_finish=200.0)
         self.assertEqual(len(machine.running_detail), 2)
 
-        # Release B (it finished first in this scenario) -- A must remain.
+        # Release B (it finished first in this scenario), A must remain.
         machine.release(job_b, job_cpu=2.0, job_gpu=1.0)
 
         self.assertEqual(len(machine.running_detail), 1)
@@ -107,7 +107,7 @@ class TestSimulation(unittest.TestCase):
 
         Regression test for simulator-4: without a tie-breaking sequence
         number, FIFO's "earliest arrival first" guarantee only held between
-        *distinct* timestamps -- simultaneous arrivals could be scheduled in
+        *distinct* timestamps, simultaneous arrivals could be scheduled in
         an order unrelated to how they were submitted, and re-running the
         identical input could reorder them.
         """
@@ -139,7 +139,7 @@ class TestSimulation(unittest.TestCase):
 
         Regression test for simulator-6 / code_bugs-7: previously such a job
         (and, under strict HoL, every job queued behind it) was dropped with
-        no error -- the simulation just returned fewer rows than jobs given.
+        no error, the simulation just returned fewer rows than jobs given.
         """
         jobs = pd.DataFrame({
             "job_id": [1],
@@ -155,7 +155,7 @@ class TestSimulation(unittest.TestCase):
 
     def test_bounded_slowdown_caps_short_job_blowup(self):
         """A very short job with a long wait should post a much smaller
-        bounded_slowdown than unbounded slowdown -- that gap is exactly the
+        bounded_slowdown than unbounded slowdown, that gap is exactly the
         point of bounded slowdown (statistics-8 / simulator-9): unbounded
         slowdown lets a 1s job dominate a mean simply by being short, not by
         reflecting the cluster's actual queueing behaviour.

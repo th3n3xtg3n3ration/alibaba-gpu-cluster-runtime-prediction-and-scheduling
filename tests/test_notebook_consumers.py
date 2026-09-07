@@ -1,15 +1,15 @@
 """The guards the notebooks have to honour, checked in the notebooks.
 
-Two of them live in src/ and are tested there -- ``model_artifact_is_current``
+Two of them live in src/ and are tested there, ``model_artifact_is_current``
 in tests/test_checkpoint_currency.py, the degenerate-predictor refusal in
-tests/test_regression_guards.py -- and both were still fully bypassable,
+tests/test_regression_guards.py, and both were still fully bypassable,
 because a guard is only worth what its consumer does with it and the consumer
 here is notebook JSON that no test read:
 
 * the currency guard was enforced at the WRITER only (notebook 04's save
   cells). Notebook 05 loaded whatever .joblib / .pth happened to be on disk, so
   a model fitted before a feature-engineering fix could still produce every
-  scheduling figure and table in the thesis -- the exact pairing the guard's own
+  scheduling figure and table in the thesis, the exact pairing the guard's own
   docstring cites, "notebook 05 simulated with those stale models". Every
   artifact in results/models is stale as of this writing, which is the normal
   state after a source fix, so this is not hypothetical.
@@ -26,9 +26,9 @@ here is notebook JSON that no test read:
 The third is not a src/ guard at all but a contract between two notebooks, and
 it is the one that turned the currency gate into a deadlock the moment it
 shipped: notebook 05 refuses any artifact without a provenance sidecar, and
-notebook 04 wrote ten of the artifacts on that list -- the four LSTM scalers,
+notebook 04 wrote ten of the artifacts on that list, the four LSTM scalers,
 the two median baselines, the three Alibaba-estimate lookups and the ablation
-model -- with no sidecar at all. The file exists, so the gate's "absent is a
+model, with no sidecar at all. The file exists, so the gate's "absent is a
 legitimate skip" branch does not fire; the currency check then rejects it; and
 the refusal tells the reader to re-run notebook 04, which writes no sidecar for
 those files either. All four notebook 05 variants would have raised before
@@ -155,7 +155,7 @@ def _artifact_writes(rel_path):
     A write is joblib.dump / torch.save into MODEL_DIR; a stamp is
     record_model_artifact on the same destination in the same cell. The pairing
     is per cell rather than per call site because record_model_artifact is
-    invoked on the destination VARIABLE in the checkpoint cells, so nothing
+    invoked on the destination variable in the checkpoint cells, so nothing
     outside the cell can tell which file a stamp refers to.
     """
     written, stamped = {}, set()
@@ -188,7 +188,7 @@ def _gated_artifact_names(rel_path):
 
     Resolving the call rather than every ``*_ARTIFACTS`` assignment is the
     point: the list literal can stay intact while the call passes something
-    else -- an empty list, say -- and a test that reads the assignment reports
+    else, an empty list, say, and a test that reads the assignment reports
     full coverage over a gate that checks nothing.
     """
     lists, gate_calls = {}, []
@@ -250,10 +250,10 @@ class TestNotebook05GatesEveryArtifactLoad(unittest.TestCase):
                 ]
                 self.assertEqual(len(gates), 1, "exactly one gate helper is expected")
                 gate = gates[0]
-                # A CALL node, not a substring of the dumped tree: the gate's
+                # A Call node, not a substring of the dumped tree: the gate's
                 # own docstring names the guard, so a dump search is satisfied
                 # by prose and stayed green when the call was swapped for
-                # `path.exists()` -- the presence-only check this whole cell
+                # `path.exists()`, the presence-only check this whole cell
                 # exists to replace.
                 self.assertTrue(
                     any(isinstance(n, ast.Call)
@@ -284,19 +284,19 @@ class TestNotebook05GatesEveryArtifactLoad(unittest.TestCase):
                 named = {}
                 for cell_id, _src, tree in _code_cells(rel_path):
                     for node in ast.walk(tree):
-                        # MODEL_DIR / "<name>" -- every artifact path the
+                        # MODEL_DIR / "<name>", every artifact path the
                         # notebook spells out.
                         name = _artifact_name(node, {})
                         if name:
                             named.setdefault(name, cell_id)
 
-                # Read off the gate CALL, because that is what runs. Built from
+                # Read off the gate call, because that is what runs. Built from
                 # the `_ARTIFACTS = [...]` assignments instead, this reported
                 # all 25 required artifacts covered while the call beside them
                 # passed an empty list.
                 gated, gate_calls = _gated_artifact_names(rel_path)
                 self.assertTrue(gate_calls, "nothing calls the gate")
-                self.assertTrue(named, "no artifact path found -- has the cell moved?")
+                self.assertTrue(named, "no artifact path found, has the cell moved?")
                 ungated = sorted(set(named) - gated)
                 self.assertEqual(
                     ungated, [],
@@ -306,7 +306,7 @@ class TestNotebook05GatesEveryArtifactLoad(unittest.TestCase):
                 )
 
     def test_the_gate_runs_before_the_first_load_in_each_loading_cell(self):
-        """Checked in one pass BEFORE the first load, in every cell that loads.
+        """Checked in one pass before the first load, in every cell that loads.
 
         Order is the whole guarantee. A currency check placed after the loads
         would name the stale files only once their predictions already exist,
@@ -349,7 +349,7 @@ class TestNotebook04CanSatisfyTheGate(unittest.TestCase):
     artifacts on the required/optional lists were dumped with no sidecar, which
     is not staleness but a deadlock: the file exists, so the gate's "absent is a
     legitimate skip" branch does not fire; the currency check rejects it; and
-    the refusal's own instruction -- re-run notebook 04 -- writes no sidecar for
+    the refusal's own instruction, re-run notebook 04, writes no sidecar for
     those files either. Nothing could clear it, and the scheduler chapter had no
     reachable path back. Only the reader half was tested, which is how a gate
     could ship with nothing able to satisfy it.
@@ -360,7 +360,7 @@ class TestNotebook04CanSatisfyTheGate(unittest.TestCase):
         for rel_path in _NOTEBOOK_05:
             names, _calls = _gated_artifact_names(rel_path)
             gated |= names
-        self.assertTrue(gated, "the gate list is empty -- has the cell moved?")
+        self.assertTrue(gated, "the gate list is empty, has the cell moved?")
 
         for rel_path in _NOTEBOOK_04:
             with self.subTest(notebook=rel_path):
@@ -384,7 +384,7 @@ class TestNotebook04CanSatisfyTheGate(unittest.TestCase):
         for rel_path in _NOTEBOOK_04:
             with self.subTest(notebook=rel_path):
                 written, stamped = _artifact_writes(rel_path)
-                self.assertTrue(written, "no model dump found -- has the cell moved?")
+                self.assertTrue(written, "no model dump found, has the cell moved?")
                 unstamped = sorted(
                     f"{name} (cell {cell})"
                     for name, cell in written.items() if name not in stamped
@@ -400,9 +400,9 @@ class TestNotebook04CanSatisfyTheGate(unittest.TestCase):
 
         Those are not on the artifact lists and are written by
         finalize_dl_model rather than by a dump cell, so the two halves agree
-        only if the filename patterns match. They already disagreed once --
+        only if the filename patterns match. They already disagreed once,
         notebook 05 built the paths from (0, 1, 2) while notebook 04 saved by
-        seed VALUE -- and the cell reported "not found" on every run without a
+        seed VALUE, and the cell reported "not found" on every run without a
         line of it ever executing.
         """
         for consumer in _NOTEBOOK_05:
@@ -429,9 +429,9 @@ class TestNotebook04FloorsEveryReportedPrediction(unittest.TestCase):
     """
 
     #: Cells that call .predict() directly, with the reason each one does.
-    #: ecd03 is deliberate -- it floors at 1 s for a log axis, which is a
+    #: ecd03 is deliberate, it floors at 1 s for a log axis, which is a
     #: stricter floor than zero and is stated in the cell. The other two are
-    #: recorded here because they exist, NOT because they are agreed: ablcell01
+    #: recorded here because they exist, not because they are agreed: ablcell01
     #: computes a Spearman rho printed to three decimals beside floored
     #: MAE/MdAE/R2 in the same table row, and ecd05 labels a thesis figure with
     #: a residual mean taken from unfloored predictions. Both belong to
@@ -563,7 +563,7 @@ class TestNotebook05ReportsTheDegeneratePolicyAsExcluded(unittest.TestCase):
 
     def test_the_results_table_carries_an_excluded_row_not_a_zero_row(self):
         """A refused policy produced no simulated rows, so the table has to add
-        it back deliberately -- with empty metrics and a stated reason. A 0.00%
+        it back deliberately, with empty metrics and a stated reason. A 0.00%
         improvement row would say it was evaluated as a predictor and tied
         FIFO; it was never evaluated at all.
         """
@@ -591,7 +591,7 @@ class TestNotebook05ReportsTheDegeneratePolicyAsExcluded(unittest.TestCase):
 
     def test_the_refusal_can_name_the_policy_it_refused(self):
         # Every prediction-driven policy shares one scheduler class, so the
-        # instance has to be told which of the 28 it is standing in for --
+        # instance has to be told which of the 28 it is standing in for,
         # otherwise the excluded row cannot say what was excluded.
         for rel_path in _NOTEBOOK_05:
             with self.subTest(notebook=rel_path):
@@ -661,7 +661,7 @@ class TestNotebook04ReportsTheCollapseVerdictBesideTheMetrics(unittest.TestCase)
     notebook 05 refused to simulate with it. One notebook's excluded model was
     the other notebook's ordinary row.
 
-    Nothing read the notebooks, so the reading could be -- and was -- dropped
+    Nothing read the notebooks, so the reading could be, and was, dropped
     without a single failure. These assert it as source: the predicate is
     imported, the shared label helper really asks it, its three-valued answer is
     not flattened on the way to the table, and every row a table builds out of a
@@ -689,7 +689,7 @@ class TestNotebook04ReportsTheCollapseVerdictBesideTheMetrics(unittest.TestCase)
     def test_the_shared_label_helper_asks_the_real_predicate(self):
         # Every table routes through degeneracy_label, so a helper that stopped
         # calling the predicate would leave all eight tables printing a verdict
-        # column that decides nothing -- and every other test here would still
+        # column that decides nothing, and every other test here would still
         # pass.
         for rel_path in _NOTEBOOK_04:
             with self.subTest(notebook=rel_path):
@@ -709,7 +709,7 @@ class TestNotebook04ReportsTheCollapseVerdictBesideTheMetrics(unittest.TestCase)
                 )
 
     def test_the_unknown_verdict_is_not_flattened_into_a_clean_one(self):
-        """``None`` -- no spread evidence -- must not print as ``False``.
+        """``None``, no spread evidence, must not print as ``False``.
 
         Every deep-learning checkpoint on disk predates the spread fields, so
         the unknown state is the one the tables actually render today. Mapping

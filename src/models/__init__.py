@@ -35,7 +35,7 @@ is_degenerate_prediction
     Read the prediction-spread fields that ``evaluate_regression`` records and
     report whether the model collapsed to a constant output. Exported next to
     the function that writes those fields so a results table can consult it
-    without reaching past the package API -- the missing half of the guard was
+    without reaching past the package API. The missing half of the guard was
     what let a constant predictor be ranked as an ordinary model.
 is_near_constant_prediction
     The weaker, non-excluding finding beside it: a model that does rank, but

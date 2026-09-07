@@ -9,8 +9,8 @@ reads the prediction-spread fields those metrics carry.
 
 The guard is the half that was missing. ``evaluate_regression`` recorded
 ``pred_std`` and ``pred_unique_frac`` into every checkpoint and every results
-table while nothing looked at them, so CNN-LSTM (Numeric Sequence) -- one
-constant, 4128.124023 s, for all 16,437 test jobs -- was ranked on its
+table while nothing looked at them, so CNN-LSTM (Numeric Sequence), one
+constant, 4128.124023 s, for all 16,437 test jobs, was ranked on its
 perfectly ordinary MAE alongside models that had learned something. Writing
 evidence is not reading it, so both directions are pinned here: the warning
 fires where the collapse happens, and it stays silent for a model that ranks.
@@ -54,8 +54,8 @@ class TestEvaluation(unittest.TestCase):
 
     # Both MAPE tests below carry a third sample purely so the arrays can show
     # three distinct predictions. Two-element fixtures genuinely trip the
-    # collapse rule -- two or fewer distinct outputs cannot order jobs at any
-    # sample size -- and the resulting warning is correct, but it has nothing
+    # collapse rule, two or fewer distinct outputs cannot order jobs at any
+    # sample size, and the resulting warning is correct, but it has nothing
     # to do with the division-by-zero guard these two are about. The collapse
     # behaviour is asserted on its own below rather than silenced here.
 
@@ -84,7 +84,7 @@ class TestCollapsedPredictionsAreStatedWhereTheyHappen(unittest.TestCase):
 
     ``pred_std`` and ``pred_unique_frac`` were already in the metrics dict when
     the constant predictor was published; what was missing was anything reading
-    them. So these assert the reading, in both directions -- a guard that only
+    them. So these assert the reading, in both directions, a guard that only
     ever fires is as useless as one that never does, and this one has to stay
     quiet for the working models whose numbers the thesis reports.
     """
@@ -168,8 +168,8 @@ class TestNoEvidenceIsNotACleanBillOfHealth(unittest.TestCase):
         # The two verdicts above are blind to the middle of a three-seed refit.
         # This is that gap at its real values: seeds 0 and 2 predict normally,
         # seed 1 collapses to one distinct value in 16,437, and the aggregate
-        # finalize_dl_model returns therefore shows a mean fraction of 0.67 --
-        # ordinary -- beside a seed0 fraction of 1.0. Both look clean, while
+        # finalize_dl_model returns therefore shows a mean fraction of 0.67,
+        # ordinary, beside a seed0 fraction of 1.0. Both look clean, while
         # the reported MAE/RMSE/R2 are means that average a constant predictor
         # in with two working ones and so describe no model that exists.
         collapsed_middle_seed = {
@@ -215,7 +215,7 @@ class TestTheExclusionRuleIsTheSameOnBothSides(unittest.TestCase):
     """One rule, or two chapters that contradict each other about one model.
 
     The metrics-side verdict and SJFPredScheduler's refusal are read by
-    consecutive chapters -- notebook 04's "Constant output?" column and
+    consecutive chapters, notebook 04's "Constant output?" column and
     notebook 05's EXCLUDED POLICIES block. While they held separate thresholds
     they disagreed: Exp A LightGBM (Numeric) is a one-tree refit emitting 15
     distinct values over 16,437 test jobs (fraction 0.0009), which the metrics
@@ -239,7 +239,7 @@ class TestTheExclusionRuleIsTheSameOnBothSides(unittest.TestCase):
     def _columns(self):
         n = 16437
         rng = np.random.default_rng(0)
-        # (name, predictions) -- the real collapse, the real coarse-but-ranking
+        # (name, predictions), the real collapse, the real coarse-but-ranking
         # refit, the two-bucket edge, and a model that ranks normally.
         return [
             ("constant", np.full(n, 4128.124023)),

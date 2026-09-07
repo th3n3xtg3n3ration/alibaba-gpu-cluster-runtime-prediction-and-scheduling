@@ -106,16 +106,8 @@ def get_default_device() -> str:
 _CHECKPOINT_DIR = Path(__file__).resolve().parent.parent / "results" / "checkpoints"
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
-# Files whose content determines a checkpoint's numbers: changing any of them
+# Files whose content determines a checkpoint's numbers. Changing any of them
 # invalidates every existing checkpoint's provenance match and forces a refit.
-#
-# The list used to hold only feature_engineering.py and tuning.py, which
-# advertised a coverage it did not have: the DL architectures (hidden sizes,
-# dropout defaults), the metric definitions the reported numbers come from, the
-# loader that resolves the training CSV, and every search grid / cv / seed in
-# configs/models.yaml could all change while model_artifact_is_current() kept
-# returning True -- so no model was refit and no checkpoint was recomputed,
-# even though the published numbers would have been different.
 _PROVENANCE_SRC_FILES = (
     "configs/models.yaml",
     "configs/paths.yaml",
@@ -126,21 +118,11 @@ _PROVENANCE_SRC_FILES = (
     "src/tuning.py",
 )
 
-# The driving notebooks belong in the same fingerprint: most of what decides a
-# checkpoint's numbers lives in their cells rather than in src/ -- the
-# train/test fraction (test_size=0.20), DL_SEEDS, the search and final-refit
-# budgets (n_iter, tuning_epochs, final_epochs, patience), seq_len, the ablation
-# feature groups, and the entire definition of the non-learned baselines
-# including their join keys. Hashing only src/ let all of those change while
-# both guards below still answered "yes, computed by the source code in the tree
-# now", so the training cells took their `if ckpt:` branch and reported numbers
-# produced under the previous settings. Notebook 04 EN and TR both write the
-# same checkpoint files, so both are hashed.
-#
-# Notebook 05 is deliberately absent: it trains nothing and writes no
-# checkpoint, so it cannot change a checkpoint's numbers -- hashing it would
-# invalidate every training result whenever a scheduling cell is edited, which
-# is the cry-wolf failure _compute_provenance's docstring warns about.
+# The driving notebooks are part of the same fingerprint: the train/test
+# fraction, the seeds, the search budgets, seq_len, the ablation groups and the
+# baseline definitions all live in their cells. Notebook 04 EN and TR write the
+# same checkpoints, so both are hashed. Notebook 05 trains nothing and is left
+# out, so editing a scheduling cell cannot invalidate a training result.
 _PROVENANCE_NOTEBOOK_FILES = (
     "notebooks/en/04_runtime_prediction_models.ipynb",
     "notebooks/tr/04_calisma_zamani_tahmin_modelleri.ipynb",
@@ -148,31 +130,18 @@ _PROVENANCE_NOTEBOOK_FILES = (
 _PROVENANCE_PACKAGES = ("scikit-learn", "xgboost", "lightgbm", "torch", "numpy", "pandas")
 
 # Checkpoint files load_checkpoint() refused in this process, by absolute path.
-# A refusal is this module telling the caller "recompute this", so the next
-# result written under that name cannot have come from disk -- see
-# save_checkpoint's ``recomputed`` argument.
+# A refusal means the next result written under that name was recomputed.
 _RECOMPUTE_REQUESTED: Set[str] = set()
 
-# The tree under which each model fitted in this process was fitted, so that
-# record_model_artifact can stamp the provenance of the COMPUTATION rather than
-# of the write -- the rule save_checkpoint's carry-forward already follows.
+# The tree each model was fitted under, so record_model_artifact stamps the
+# provenance of the computation rather than of the write.
 #
-# The record is written ONTO the model object, because module-level state does
-# not survive the workflow this mechanism exists for: notebook 04's import cell
-# ends in ``importlib.reload(src.tuning)``, and a reload re-executes this module
-# body. A plain assignment here therefore handed a fresh, empty registry to
-# precisely the run that reloads to pick a source edit up, after which
-# record_model_artifact fell back to the tree standing at the WRITE -- the
-# laundering the docstrings below say it prevents. An attribute rides with the
-# object through the reload (and through joblib / torch pickling, so a model
-# read back off disk still knows what it was fitted under), and the two globals
-# are seeded with setdefault so a reload keeps what the previous module body
-# had already recorded rather than starting blank.
-#
-# The weak registry covers objects that refuse attributes; the most recent fit
-# is kept separately because the notebooks' non-learned baselines (per-user
-# median lookup tables) are computed in the notebook and handed to
-# record_model_artifact as a destination path alone.
+# The record rides on the model object itself: notebook 04's import cell ends in
+# importlib.reload, which re-executes this module body and would otherwise reset
+# a module-level registry. An attribute survives the reload and joblib or torch
+# pickling; the globals use setdefault for the same reason. The weak registry
+# covers objects that refuse attributes, and the most recent fit covers the
+# notebook baselines, which arrive as a destination path alone.
 _FIT_PROVENANCE_ATTR = "_thesis_fit_provenance"
 _FIT_PROVENANCE: "weakref.WeakKeyDictionary[Any, Dict[str, Any]]" = globals().setdefault(
     "_FIT_PROVENANCE", weakref.WeakKeyDictionary()
@@ -181,10 +150,8 @@ _PROVENANCE_AT_LAST_FIT: Optional[Dict[str, Any]] = globals().setdefault(
     "_PROVENANCE_AT_LAST_FIT", None
 )
 
-# Stamped when a model object is handed over that this process demonstrably did
-# not fit. It carries no ``src_sha256``, so _provenance_is_current refuses it
-# and the artifact is refit -- rather than being certified on the strength of
-# some other model's fit, or of the tree standing at the write.
+# Stamped when a model this process did not fit is handed over. It carries no
+# src_sha256, so _provenance_is_current refuses it and the artifact is refit.
 _FIT_UNKNOWN: Dict[str, Any] = {
     "fit_provenance": "unknown",
     "note": (
@@ -200,7 +167,7 @@ def _note_model_fit(*models: Any) -> None:
 
     Called by every path in this module that produces a model destined for
     disk. Without it, provenance could only be sampled at save time, and a
-    save cell re-run after a source edit -- with the pre-edit model still bound
+    save cell re-run after a source edit, with the pre-edit model still bound
     in the kernel, which is the whole reason the save is a separate cell --
     stamped the CURRENT tree onto pre-edit weights.
 
@@ -213,15 +180,13 @@ def _note_model_fit(*models: Any) -> None:
         try:
             setattr(model, _FIT_PROVENANCE_ATTR, _PROVENANCE_AT_LAST_FIT)
         except (AttributeError, TypeError):
-            # Refuses attributes (__slots__, a dict-shaped lookup-table
-            # "model"); the registry below still covers it if it can be
-            # weakly keyed, and the most recent fit above if it cannot.
+            # Refuses attributes. The registry below covers it if it can be
+            # weakly keyed, the most recent fit above if it cannot.
             pass
         try:
             _FIT_PROVENANCE[model] = _PROVENANCE_AT_LAST_FIT
         except TypeError:
-            # Not weak-referenceable (a dict-shaped lookup-table "model");
-            # the most recent fit recorded above still applies to it.
+            # Not weak-referenceable; the most recent fit above applies to it.
             pass
 
 
@@ -244,7 +209,7 @@ def _can_record_fit(model: Any) -> bool:
     False for are the dict-shaped lookup-table "models" the notebooks build,
     which can hold neither an attribute nor a registry entry. For every
     estimator, scaler and nn.Module, a missing record is therefore evidence
-    that this process did not fit the object -- not an absence of evidence.
+    that this process did not fit the object, not an absence of evidence.
     """
     try:
         weakref.ref(model)
@@ -278,7 +243,7 @@ def _notebook_code_sha256(path: Path) -> Optional[str]:
 
     Only ``cell['source']`` of the code cells is hashed. Hashing the .ipynb
     bytes would fold in stored outputs and execution counts, so merely running
-    the notebook -- or clearing its outputs, or editing a markdown cell --
+    the notebook, or clearing its outputs, or editing a markdown cell,
     would invalidate every checkpoint it just wrote, none of which changes a
     number.
     """
@@ -294,7 +259,7 @@ def _notebook_code_sha256(path: Path) -> Optional[str]:
         if isinstance(source, list):
             source = "".join(source)
         # NUL separator: without it, moving a line between two adjacent cells
-        # would leave the concatenation -- and the hash -- unchanged.
+        # would leave the concatenation, and the hash, unchanged.
         digest.update(source.encode("utf-8") + b"\0")
     return digest.hexdigest()
 
@@ -312,7 +277,7 @@ def _training_input_files() -> Dict[str, Path]:
 
     Every ``prepare_features_for_model`` call in the modelling notebooks leaves
     ``use_processed=False``, so features are rebuilt from the raw trace that
-    ``load_sample`` resolves out of paths.yaml -- the processed utilization CSV
+    ``load_sample`` resolves out of paths.yaml, the processed utilization CSV
     is never opened by a modelling cell.
     """
     try:
@@ -340,12 +305,12 @@ def _compute_provenance() -> Dict[str, Any]:
     print-only once, and every caller read ``if ckpt:`` regardless, which is how
     pre-fix numbers kept reaching the results tables. Without the snapshot, a
     checkpoint produced under different code, data, or library versions is
-    indistinguishable from a fresh one -- the ``reproducibility-4`` finding.
+    indistinguishable from a fresh one.
 
     ``data_sha256`` fingerprints the raw trace files, not the processed
     utilization CSV it used to hash. That CSV is written by notebook 00 and
     read by nothing in the training path, so regenerating it fired a data-change
-    warning on 26 of 31 checkpoints whose numbers it cannot influence -- while a
+    warning on 26 of 31 checkpoints whose numbers it cannot influence, while a
     swap of the raw trace those numbers do come from went unreported. A guard
     that cries wolf about an unread file teaches the reader to skip the whole
     warning block, including the src_sha256 line that matters.
@@ -369,8 +334,8 @@ def _mapping_mismatches(key: str, stored: Dict[str, Any], current: Dict[str, Any
     """Per-entry differences for a dict-valued provenance field, one line each."""
     stored_map = stored.get(key)
     if not isinstance(stored_map, dict):
-        # Checkpoints written before this field became a mapping (data_sha256
-        # was a single processed-CSV hash) recorded nothing for these entries.
+        # Checkpoints written before this field became a mapping recorded a
+        # single processed-CSV hash and nothing for these entries.
         stored_map = {}
     lines = []
     for name, current_value in (current.get(key) or {}).items():
@@ -382,7 +347,7 @@ def _mapping_mismatches(key: str, stored: Dict[str, Any], current: Dict[str, Any
 def _provenance_mismatches(stored: Dict[str, Any], current: Dict[str, Any]) -> List[str]:
     """Human-readable list of provenance fields that changed since a checkpoint was written."""
     if not stored:
-        return ["no provenance recorded (checkpoint predates reproducibility-4 fix)"]
+        return ["no provenance recorded"]
     mismatches = []
     for key in ("git_commit", "device"):
         if stored.get(key) != current.get(key):
@@ -399,14 +364,14 @@ def _provenance_is_current(stored: Dict[str, Any]) -> bool:
     :func:`model_artifact_is_current`, so a metric and the model artifact beside
     it can never disagree about whether they are stale.
 
-    ``src_sha256`` -- source files, configs and the driving notebooks' code
-    cells -- must match exactly, and so must every raw-trace hash the current
+    ``src_sha256``, covering source files, configs and the driving notebooks'
+    code cells, must match exactly, and so must every raw-trace hash the current
     environment can compute. The data half used to be excluded on the grounds
     that ``data_sha256`` hashed a processed file the training path never reads;
     that stopped being true once the fingerprint was repointed at the raw trace
     ``load_sample`` actually opens, and until then a re-sampled or regenerated
     trace left every checkpoint and artifact certified current behind nothing
-    but a printed warning -- the warning-only mechanism load_checkpoint's own
+    but a printed warning, the warning-only mechanism load_checkpoint's own
     docstring calls insufficient.
 
     A trace the current environment cannot hash (``None``) is not judged:
@@ -426,9 +391,8 @@ def _provenance_is_current(stored: Dict[str, Any]) -> bool:
         return False
     stored_data = stored.get("data_sha256")
     if not isinstance(stored_data, dict):
-        # Checkpoints predating the mapping form recorded a single
-        # processed-CSV hash here, which says nothing about the raw trace:
-        # unverifiable, therefore not current.
+        # Checkpoints predating the mapping form recorded a single processed-CSV
+        # hash, which says nothing about the raw trace. Unverifiable, so not current.
         stored_data = {}
     return all(
         stored_data.get(name) == digest
@@ -569,7 +533,7 @@ def save_checkpoint(
         Whether ``data`` was computed by this run rather than loaded from the
         checkpoint being overwritten. Leave as None (the default) to infer it
         from whether :func:`load_checkpoint` refused this name earlier in the
-        process -- a refusal means the caller was sent down its retrain path,
+        process. A refusal means the caller was sent down its retrain path,
         so whatever it writes back is by construction a fresh computation.
         Pass it explicitly when the cell that writes is not the cell that
         loaded, since the inference cannot see that link (notebook 04's nbae02
@@ -587,47 +551,23 @@ def save_checkpoint(
     if recomputed is None:
         recomputed = str(path) in _RECOMPUTE_REQUESTED
 
-    # If an existing checkpoint already reports the same metrics and the caller
-    # did not recompute them, this is a re-save of an already-recorded result
-    # (e.g. a notebook cell re-run after loading from disk), not a new training
-    # run -- keep its original timestamp instead of bumping it to "now", which
-    # would otherwise make a stale checkpoint look freshly produced on every
-    # kernel restart (reproducibility-4).
+    # If an existing checkpoint reports the same metrics and the caller did not
+    # recompute them, this is a re-save of a recorded result, not a new run.
+    # Keep the original timestamp so a stale checkpoint does not look fresh.
     if path.exists():
         try:
             with open(path, "r") as f:
                 previous = json.load(f)
-            # Identical metrics are NOT by themselves evidence that nothing was
-            # recomputed. Eight non-learned baselines hard-code
-            # train_time = 0.0 and three further checkpoints store no
-            # train_time at all, so a genuine refit of a deterministic baseline
-            # reproduces its metrics block bit for bit. Inferring "loaded, not
-            # computed" from that froze the OLD provenance onto a freshly
-            # computed result, which checkpoint_is_current can then never
-            # certify again and load_all_checkpoints drops for good -- so the
-            # Experiment B and summary tables could no longer be rebuilt from
-            # disk. Only the caller (or load_checkpoint's own refusal, which
-            # ``recomputed`` reads) knows which of the two happened.
-            #
-            # When the caller did load this result, the provenance must be
-            # carried over UNCHANGED. The earlier version of this guard also
-            # required the provenance to match, so a re-save after a source
-            # change fell through and restamped the checkpoint with the CURRENT
-            # source hash -- which silently relabelled a stale result as freshly
-            # produced and suppressed load_checkpoint's mismatch warning from
-            # the next run onwards. Provenance has to describe the computation,
-            # not the write.
-            #
-            # best_params deliberately takes no part in this test. The
-            # non-learned baselines record their configuration as a prose
-            # 'estimator' string that the Turkish notebook writes translated
-            # ("single global training median, no grouping" ->
-            # "gruplamasız tek global eğitim medyanı"), so comparing it made a
-            # mere language switch look like a fresh computation: opening the
-            # TR notebook restamped exp_b_constant_median, exp_b_constant_zero
-            # and exp_b_profile_median with the current commit, source hashes
-            # and timestamp although their numbers were never recomputed. A
-            # human-readable label is not evidence about what produced a number.
+            # Identical metrics are not evidence that nothing was recomputed:
+            # eight non-learned baselines hard-code train_time = 0.0 and three
+            # more store none, so a genuine refit reproduces the metrics block
+            # exactly. Only the caller, or load_checkpoint's own refusal, knows
+            # which of the two happened. When the result was loaded, the
+            # provenance is carried over unchanged, because provenance describes
+            # the computation and not the write. best_params takes no part in the
+            # test: the baselines record a prose estimator string that the
+            # Turkish notebook writes translated, and a language switch is not
+            # evidence about what produced a number.
             same_result = previous.get("metrics") == clean.get("metrics")
             if same_result and not recomputed:
                 if "timestamp" in previous:
@@ -640,11 +580,9 @@ def save_checkpoint(
     with open(path, "w") as f:
         json.dump(clean, f, indent=2, default=str)
 
-    # A refusal is a one-shot licence for the write that answers it: consuming
-    # it here means a save cell re-run later in the same kernel -- after a
-    # source edit, with the old numbers still in memory -- falls back to the
-    # conservative carry-forward above instead of relabelling them as freshly
-    # produced.
+    # A refusal licenses one write. Consuming it here means a save cell re-run
+    # later in the same kernel, after a source edit, falls back to the
+    # conservative carry-forward instead of relabelling old numbers as fresh.
     _RECOMPUTE_REQUESTED.discard(str(path))
 
     print(f"  [Checkpoint] Saved → {path.name}")
@@ -663,7 +601,7 @@ def model_artifact_is_current(dest: Union[str, Path]) -> bool:
     a pairing that never existed in any single coherent run.
 
     A model is current only when its sidecar still passes
-    :func:`_provenance_is_current` -- the same source hashes and the same raw
+    :func:`_provenance_is_current`, the same source hashes and the same raw
     trace as the tree holds right now. The sidecar records the tree the model
     was FITTED under rather than the one standing when it was written
     (:func:`record_model_artifact`), so re-saving a model that predates a
@@ -709,8 +647,8 @@ def record_model_artifact(dest: Union[str, Path], model: Any = None) -> Path:
     here was the one place in this module where provenance described the write:
     ``save_checkpoint`` refuses to relabel a metric it did not recompute, but
     the ``joblib.dump`` two lines below it in every notebook 04 save cell
-    relabelled the model unconditionally. Re-running only the save cell -- the
-    reason the save is a separate cell at all -- after a source edit, with the
+    relabelled the model unconditionally. Re-running only the save cell, which is the
+    reason the save is a separate cell at all, after a source edit, with the
     trained model still bound in the kernel, therefore left the checkpoint
     correctly marked stale and the ``.joblib``/``.pth`` beside it certified
     current with pre-edit weights. That artifact then passed notebook 05's
@@ -722,7 +660,7 @@ def record_model_artifact(dest: Union[str, Path], model: Any = None) -> Path:
 
     A ``model`` that could be carrying a fit record and is not was fitted
     somewhere this process cannot see, so it is stamped ``fit_provenance:
-    unknown`` -- refused by :func:`_provenance_is_current` -- instead of
+    unknown``, which :func:`_provenance_is_current` refuses, instead of
     borrowing the last fit in the kernel or the tree standing at the write.
 
     Falling back to the current tree when this process fitted nothing keeps the
@@ -773,14 +711,14 @@ def load_checkpoint(
     """
     Load experiment results from disk.
 
-    Returns None if the checkpoint does not exist, and -- by default -- also if
+    Returns None if the checkpoint does not exist, and by default also if
     it was computed by different source code than the tree now holds.
 
     That second case used to be a printed warning only, and the callers all
     read `if ckpt: metrics = ckpt['metrics']`, so a stale result was reported
     anyway: after the sweep-line correction (09cf225) every model checkpoint
     still held pre-fix numbers while the .joblib artifacts beside them had been
-    refit, and the two disagreed by up to 507 s of MAE -- enough to invert the
+    refit, and the two disagreed by up to 507 s of MAE, enough to invert the
     Random Forest / XGBoost ranking the results chapter states. A warning that
     every run prints and every caller ignores is not a guard.
 
@@ -790,7 +728,7 @@ def load_checkpoint(
 
     Every refusal is remembered for the process, because it is the only place
     the module learns that the result the caller writes next was computed
-    rather than loaded -- see :func:`save_checkpoint`'s ``recomputed``.
+    rather than loaded. See :func:`save_checkpoint`'s ``recomputed``.
     """
     path = _CHECKPOINT_DIR / f"{experiment_name}.json"
     if not path.exists():
@@ -836,10 +774,9 @@ def load_all_checkpoints() -> Dict[str, Dict[str, Any]]:
     results = {}
     skipped = []
     for f in sorted(_CHECKPOINT_DIR.glob("*.json")):
-        # The summary tables are built from this dict, so it has to apply the
-        # same currency rule as load_checkpoint -- otherwise a stale result the
-        # training cell correctly recomputed could still reach a table through
-        # the fallback path.
+        # The summary tables are built from this dict, so it applies the same
+        # currency rule as load_checkpoint. Otherwise a stale result the training
+        # cell correctly recomputed could still reach a table through the fallback.
         if not checkpoint_is_current(f.stem):
             skipped.append(f.stem)
             continue
@@ -968,44 +905,28 @@ def get_param_distributions(model_key: str, cfg: Optional[Dict[str, Any]] = None
 # ---------------------------------------------------------------------
 # Training loss, per model family
 #
-# ``objective`` is a fixed constructor argument, not a tuned hyperparameter:
-# it appears in no search grid in configs/models.yaml, so it is never in
-# ``best_params`` and has to be set at every construction site or the library
-# default takes over. Each family therefore names its loss here, once.
+# objective is a fixed constructor argument, not a tuned hyperparameter. It
+# appears in no search grid, so it is never in best_params and has to be set at
+# every construction site or the library default takes over.
 #
-# LightGBM is L1, matching what everything downstream selects and reports on:
-# _get_common fixes ``scoring: neg_mean_absolute_error`` for all three
-# families, the results tables rank on MAE, and notebook 05 picks its SJF-Pred
-# model on MAE. Its search already used ``regression_l1`` while its final refit
-# silently fell back to LightGBM's default L2; naming the objective here is
-# what closes that gap.
+# LightGBM is L1, matching what everything downstream selects and reports on.
+# Its search already used regression_l1 while its final refit fell back to L2.
 #
-# XGBoost deliberately does NOT follow it onto L1, even though that leaves one
-# booster fitted on a loss it is not ranked by. ``reg:absoluteerror`` starts
-# from the training median (base_score 596 s here) and on this heavy-tailed
-# target the chronological 10% validation split in finalize_ml_model sees its
-# MAE rise monotonically from round 3 onward, so early stopping ends the refit
-# at 3 trees in Experiment A and 4 in Experiment B. Measured on the real split
-# with the stored best_params, switching only this constant: Exp A R2
-# 0.019 -> -0.111, MdAE 3032 -> 805, distinct predictions 2689 -> 25 over
-# 16,437 test jobs; Exp B (native categorical, the best tree-model R2 in the
-# thesis) R2 0.119 -> -0.108. The MAE it buys (-8.8% in Exp A) is the model
-# degenerating toward the conditional median -- the collapse
-# _warn_if_ensemble_collapsed exists to flag -- and a 3-tree, 25-value
+# XGBoost stays on squared error. reg:absoluteerror starts from the training
+# median and on this heavy-tailed target early stopping ends the refit at 3
+# trees in Experiment A and 4 in Experiment B. Measured on the real split,
+# switching only this constant: Exp A R2 0.019 to -0.111, MdAE 3032 to 805,
+# distinct predictions 2689 to 25 over 16,437 test jobs. A 3-tree, 25-value
 # predictor cannot rank jobs, which is the only thing notebook 05 asks of it.
-# Nor would it remove the confound it was meant to remove: it would leave two
-# collapsed L1 boosters against one L2 forest.
 #
-# RandomForest stays on squared error for an unrelated reason: scikit-learn's
-# ``criterion="absolute_error"`` evaluates a median at every candidate split
-# and is orders of magnitude slower than ``squared_error`` on an 80k-row
-# training set, which puts a CV grid search out of reach.
+# RandomForest stays on squared error because criterion="absolute_error"
+# evaluates a median at every candidate split and puts a CV grid search out of
+# reach on an 80k-row training set.
 #
-# The loss is therefore NOT uniform across the three families and cannot be
-# made uniform here. It travels in the metrics dict instead (``train_loss``,
-# set by _training_loss below), so every checkpoint and every results table
-# states per row which loss produced it rather than the asymmetry being
-# visible only in this file.
+# The loss is therefore not uniform across the three families. It travels in the
+# metrics dict as train_loss, so every checkpoint and every results table states
+# per row which loss produced it.
+# ---------------------------------------------------------------------
 _XGB_OBJECTIVE = "reg:squarederror"
 _LGBM_OBJECTIVE = "regression_l1"
 _RF_DEFAULT_CRITERION = "squared_error"
@@ -1325,8 +1246,7 @@ def _training_loss(model_name: str, best_params: Dict[str, Any]) -> str:
         return _XGB_OBJECTIVE
     if model_name == "lgbm":
         return _LGBM_OBJECTIVE
-    # RF's criterion IS searchable (configs/models.yaml offers it), so read the
-    # winner rather than assume the default.
+    # RF's criterion is searchable, so read the winner rather than assume the default.
     return str(best_params.get("criterion", _RF_DEFAULT_CRITERION))
 
 
@@ -1336,9 +1256,8 @@ def _searched_n_estimators(best_params: Dict[str, Any]) -> Optional[int]:
     return None if value is None else int(value)
 
 
-# A boosted "ensemble" this small is not a tuned model, it is a statement about
-# the internal early-stopping split: the loss curve turned upward before the
-# search budget was anywhere near spent.
+# A boosted ensemble this small is not a tuned model, it is a statement about
+# the internal early-stopping split: the loss curve turned upward early.
 _MIN_ENSEMBLE_TREES = 10
 
 
@@ -1348,8 +1267,8 @@ def _warn_if_ensemble_collapsed(
     """Say so when early stopping left a boosted model with almost no trees.
 
     Exp A LightGBM reached the thesis's best Experiment A MAE with a refit of
-    exactly ONE tree, alongside an R2 of -0.1219 -- the signature of a single
-    L1 tree predicting group medians -- while the only tree count that reached
+    exactly one tree, alongside an R2 of -0.1219, the signature of a single
+    L1 tree predicting group medians, while the only tree count that reached
     the hyperparameter table was ``best_params['n_estimators']``, i.e. 1300.
     Nothing in the pipeline noticed: ``is_degenerate_prediction`` (called by
     evaluate_regression) judges prediction-value collapse, and one tree with
@@ -1364,9 +1283,9 @@ def _warn_if_ensemble_collapsed(
     warnings.warn(
         f"{model_name.upper()} final refit early-stopped at {effective} tree(s) "
         f"out of a search budget of {budget}. The returned model is not the "
-        "tuned ensemble its best_params describe -- a table printing "
+        "tuned ensemble its best_params describe. A table printing "
         "n_estimators for this row overstates the model by orders of "
-        "magnitude -- and stopping this early is evidence about the internal "
+        "magnitude, and stopping this early is evidence about the internal "
         "10% chronological holdout, not a converged fit. Report "
         "n_estimators_effective, and treat the score as provisional.",
         UserWarning,
@@ -1414,7 +1333,7 @@ def finalize_ml_model(
     tuple
         ``(final_model, metrics)``. Besides the error metrics, ``metrics``
         carries what a results table needs in order to state what was actually
-        fitted: ``train_loss`` (the loss this family minimises -- L1 for
+        fitted: ``train_loss`` (the loss this family minimises, L1 for
         LightGBM, squared error for XGBoost and RandomForest, see
         ``_XGB_OBJECTIVE``) and, for the boosters,
         ``n_estimators_effective`` beside
@@ -1430,10 +1349,9 @@ def finalize_ml_model(
         final_model = RandomForestRegressor(**best_params, random_state=random_state, n_jobs=safe_n_jobs)
         final_model.fit(X_train, y_train)
     else:
-        # Split for internal validation: this first fit's only purpose is to
-        # use early stopping to find how many trees the loss curve actually
-        # supports (best_iteration). It is NOT the model that gets returned
-        # or evaluated below.
+        # Split for internal validation. This first fit only uses early stopping
+        # to find how many trees the loss curve supports. It is not the model
+        # returned or evaluated below.
         X_tr_split, X_val_split, y_tr_split, y_val_split = chronological_train_validation_split(
             X_train, y_train, validation_size=0.10
         )
@@ -1445,13 +1363,10 @@ def finalize_ml_model(
                 n_jobs=safe_n_jobs,
                 tree_method="hist",
                 enable_categorical=enable_categorical,
-                # Match the loss AND the eval_metric used during hyperparameter
-                # search (run_randomsearch_xgb / run_gridsearch_xgb build
-                # XGBRegressorCV with the same pair), so the tree count found
-                # here is the one those hyperparameters were selected under.
-                # eval_metric="mae" steers early stopping and scoring only; the
-                # gradient stays squared error, and _XGB_OBJECTIVE above says
-                # why that asymmetry is kept rather than closed here.
+                # Match the loss and the eval_metric used during hyperparameter
+                # search, so the tree count found here is the one those
+                # hyperparameters were selected under. eval_metric steers early
+                # stopping and scoring only; the gradient stays squared error.
                 objective=_XGB_OBJECTIVE,
                 eval_metric="mae",
                 early_stopping_rounds=50
@@ -1464,13 +1379,10 @@ def finalize_ml_model(
             # +1: best_iteration is the 0-indexed round with the best score.
             best_n_estimators = max(1, int(search_model.best_iteration) + 1)
 
-            # Refit on ALL of X_train -- not the 90% split above -- with the
-            # tree count early stopping found, and no further early
-            # stopping. Without this second fit, the ~10% of chronologically
-            # last (closest-to-test-period) training rows held out above
-            # never contributed a single gradient update to XGB/LGBM, while
-            # RF's bagging sees 100% of X_train: an unequal data budget
-            # between model families (code_bugs-6).
+            # Refit on all of X_train with the tree count early stopping found,
+            # and no further early stopping. Without it the chronologically last
+            # 10% of training rows never contribute a gradient update, while RF's
+            # bagging sees all of X_train: an unequal data budget between families.
             final_model = xgb.XGBRegressor(
                 **{**best_params, "n_estimators": best_n_estimators},
                 random_state=random_state,
@@ -1486,13 +1398,9 @@ def finalize_ml_model(
                 **best_params,
                 random_state=random_state,
                 n_jobs=safe_n_jobs,
-                # Match the objective used during hyperparameter search
-                # (run_randomsearch_lgbm / run_gridsearch_lgbm build
-                # LGBMRegressorCV with the same constant). Without setting it
-                # here, the final refit silently falls back to LightGBM's
-                # default "regression" (L2 / squared-error) objective -- a
-                # different loss function than the one hyperparameters were
-                # chosen for.
+                # Match the objective used during hyperparameter search. Without
+                # it the final refit falls back to LightGBM's default L2, a
+                # different loss than the one hyperparameters were chosen for.
                 objective=_LGBM_OBJECTIVE,
             )
             search_model.fit(
@@ -1504,9 +1412,8 @@ def finalize_ml_model(
             )
             best_n_estimators = max(1, int(search_model.best_iteration_))
 
-            # Same rationale as the XGB branch above: refit on 100% of
-            # X_train with the discovered tree count, no further early
-            # stopping, so LGBM's data budget matches RF's (code_bugs-6).
+            # Same as the XGB branch: refit on all of X_train with the discovered
+            # tree count, so LGBM's data budget matches RF's.
             final_model = lgb.LGBMRegressor(
                 **{**best_params, "n_estimators": best_n_estimators},
                 random_state=random_state,
@@ -1518,38 +1425,32 @@ def finalize_ml_model(
     train_time = time.time() - start_time
     
     # Test Evaluation
-    # Clipped to non-negative for the same reason _finalize_dl_single already
-    # clips DL predictions: a negative predicted runtime is never physically
-    # meaningful, and an unclipped tree prediction (observed for LightGBM
-    # with native categoricals) would let notebook 05's SJF-Pred treat that
-    # job as the shortest in the queue (code_bugs-5).
+    # Clipped to non-negative for the same reason _finalize_dl_single clips DL
+    # predictions: a negative predicted runtime is never physically meaningful,
+    # and an unclipped tree prediction would let notebook 05's SJF-Pred treat
+    # that job as the shortest in the queue.
     y_pred = np.maximum(final_model.predict(X_test), 0)
     metrics = evaluate_regression(y_test, y_pred)
     metrics['train_time'] = train_time
-    # The loss this family was actually fitted with, carried into the
-    # checkpoint so a results table can state it per row. Only LightGBM
-    # minimises the metric it is ranked on; XGBoost and RandomForest do not
-    # (see _XGB_OBJECTIVE above for why neither is forced onto L1), and a table
-    # that prints MAE without this column cannot tell a reader which comparison
-    # is controlled for loss.
+    # The loss this family was fitted with, carried into the checkpoint so a
+    # results table can state it per row. Only LightGBM minimises the metric it
+    # is ranked on, and a table that prints MAE without this column cannot tell
+    # a reader which comparison is controlled for loss.
     metrics['train_loss'] = _training_loss(model_name, best_params)
     if model_name in ("xgb", "lgbm"):
-        # The tree count early stopping actually found and that final_model
-        # was refit with -- distinct from best_params['n_estimators'], which
-        # is only the search-phase upper bound (modeling-3 / modeling-11).
+        # The tree count early stopping found and final_model was refit with.
+        # best_params['n_estimators'] is only the search-phase upper bound.
         metrics['n_estimators_effective'] = best_n_estimators
-        # Both numbers, so a hyperparameter table can print the size of the
-        # model instead of the size of the search. best_params['n_estimators']
-        # is the only tree count that ever reached the thesis table, and for
-        # Exp A LightGBM it says 1300 for a model that is one tree.
+        # Both numbers, so a hyperparameter table can print the size of the model
+        # instead of the size of the search. For Exp A LightGBM the search bound
+        # says 1300 for a model that is one tree.
         metrics['n_estimators_searched'] = _searched_n_estimators(best_params)
         _warn_if_ensemble_collapsed(
             model_name, best_n_estimators, metrics['n_estimators_searched']
         )
 
-    # The provenance of the model that just came out of this call, so a save
-    # cell re-run later in the same kernel -- after a source edit, with this
-    # object still bound -- cannot stamp the current tree onto it.
+    # The provenance of the model this call produced, so a save cell re-run later
+    # in the same kernel cannot stamp the current tree onto it.
     _note_model_fit(final_model)
 
     if verbose:
@@ -1565,7 +1466,7 @@ def finalize_ml_model(
 
 
 # -----------------------------
-# Grid convergence (modeling-11)
+# Grid convergence
 # -----------------------------
 def grid_boundary_params(param_grid: Dict[str, Any], best_params: Dict[str, Any]) -> List[str]:
     """Tuned parameters whose winning value sits on the edge of the grid searched.
@@ -1574,14 +1475,13 @@ def grid_boundary_params(param_grid: Dict[str, Any], best_params: Dict[str, Any]
     it was offered. When the winner is the smallest or largest value on the
     grid, the search has not converged: the true optimum may lie beyond the
     range that was searched, and the reported "best" is as likely to be a
-    boundary artefact as a real optimum (``modeling-11``). Parameters whose
+    boundary artefact as a real optimum. Parameters whose
     grid holds a single value, or whose values are not order-comparable
     (``max_features='sqrt'``), cannot be at a boundary and are skipped.
     """
     def _orderable(v) -> bool:
-        # bool is a subclass of int but has no meaningful "edge"; strings compare
-        # lexicographically, which says nothing about whether 'sqrt' is an extreme
-        # choice. Only genuinely numeric values can sit at a boundary.
+        # bool is a subclass of int but has no meaningful edge, and strings
+        # compare lexicographically. Only numeric values can sit at a boundary.
         return isinstance(v, (int, float)) and not isinstance(v, bool)
 
     at_edge: List[str] = []
@@ -1612,15 +1512,15 @@ def run_gridsearch_iterative(
     ``make_narrow_grid`` builds a grid *around* the parameters it is given, so
     re-centring it on a boundary winner automatically extends the search in
     that direction. Repeating until the winner is interior (or ``max_rounds``
-    is reached) is the cheap version of the iterative-narrowing the fix for
-    ``modeling-11`` asks for -- one extra GridSearchCV per model at worst.
+    is reached) is the cheap version of iterative narrowing, one extra
+    GridSearchCV per model at worst.
 
     Returns
     -------
     tuple
         ``(model, best_params, score, diagnostics)`` where ``diagnostics``
         records how many rounds ran and which parameters (if any) were still
-        at a boundary when the search stopped -- so a run that hit
+        at a boundary when the search stopped, so a run that hit
         ``max_rounds`` without converging is visible in the checkpoint rather
         than silently reported as a converged optimum.
     """
@@ -1642,7 +1542,7 @@ def run_gridsearch_iterative(
     still_at_edge = grid_boundary_params(grid, best)
     if verbose and still_at_edge:
         print(f"[{model_name}] NOTE: after {rounds} round(s) these parameters are still at a "
-              f"grid boundary: {still_at_edge} -- treat the reported optimum as unconverged.")
+              f"grid boundary: {still_at_edge}. Treat the reported optimum as unconverged.")
     return model, best, score, {
         "grid_rounds": rounds,
         "params_at_boundary": still_at_edge,
@@ -1695,7 +1595,7 @@ def make_narrow_grid(
         itself offers: configs/models.yaml lists colsample_bytree [0.3, 0.5]
         for XGBoost and [0.3, 0.5, 0.7] for LightGBM. When random search picked
         0.3, every multiplicative variant (0.15 ... 0.45) collapsed onto 0.5 and
-        the narrow grid degenerated to the single value [0.5] -- a point the
+        the narrow grid degenerated to the single value [0.5], a point the
         search had never scored against the 0.3 it actually selected, silently
         substituted into best_params and into the final refit.
         """
@@ -1737,11 +1637,9 @@ def make_narrow_grid(
         }:
             vals = [x for x in vals if x >= 2]
         if name in {"num_layers", "lstm_num_layers"}:
-            # A single-layer (LSTM/hybrid) recurrent stack is a valid,
-            # commonly-best configuration -- filtering at >=2 here silently
-            # dropped 1 from the grid even when random search selected it,
-            # so the narrow grid and final refit could never reproduce that
-            # choice (modeling-5).
+            # A single-layer recurrent stack is a valid and often best
+            # configuration. Filtering at >=2 dropped 1 from the grid even when
+            # random search selected it, so the final refit could not reproduce it.
             vals = [x for x in vals if x >= 1]
 
         if name == "subsample_freq":
@@ -1872,15 +1770,10 @@ def make_narrow_grid(
             grid[name] = [None]
             continue
 
-        # dropout is sampled from a small fixed set in configs/models.yaml
-        # (e.g. [0.2, 0.3]), not a value meant to be widened by the generic
-        # multiplicative float narrowing below -- that would search dropout
-        # rates the random search was never configured to consider. Carry
-        # whatever random search selected through unchanged (code_bugs-3):
-        # previously "dropout" was not in `allowed` for any DL model, so it
-        # never reached the grid or final refit at all, which silently
-        # trained the grid/final models at the framework default (0.2)
-        # regardless of what random search had actually picked.
+        # dropout is sampled from a small fixed set in configs/models.yaml, not a
+        # value meant to be widened by the multiplicative float narrowing below,
+        # which would search rates the random search never considered. Carry
+        # whatever random search selected through unchanged.
         if name == "dropout":
             grid[name] = [v]
             continue
@@ -1910,9 +1803,9 @@ def make_narrow_grid(
         
     for c in ["subsample", "colsample_bytree", "colsample_bylevel", "colsample_bynode"]:
         if c in grid:
-            # Union the incoming value back in: clipping must never be able to
-            # drop the point the grid is supposed to be centred on, or the
-            # refinement stage reports a value the search never evaluated.
+            # Union the incoming value back in: clipping must not drop the point
+            # the grid is centred on, or the refinement stage reports a value the
+            # search never evaluated.
             vals = [_clip_fraction(x) for x in grid[c]] + [_clip_fraction(best_params[c])]
             grid[c] = _uniq_sorted([round(float(x), 6) for x in vals])
 
@@ -2151,11 +2044,9 @@ def prepare_dl_datasets(
     y_train_scaled = scaler_y.fit_transform(y_train.reshape(-1, 1))
     y_test_scaled  = scaler_y.transform(y_test.reshape(-1, 1))
 
-    # The scalers are artifacts in their own right -- notebook 04 saves all
-    # four and notebook 05 lists them among the files it refuses to simulate
-    # without -- and this is the only place they are fitted. Recording the fit
-    # here is what lets record_model_artifact stamp the tree they were fitted
-    # under, and what keeps that gate satisfiable for a scaler that is fresh.
+    # The scalers are artifacts in their own right and this is the only place
+    # they are fitted. Recording the fit here is what lets record_model_artifact
+    # stamp the tree they were fitted under.
     _note_model_fit(scaler_x, scaler_y)
 
     # To handle testing for the very first item without losing sequence length,
@@ -2197,7 +2088,7 @@ class EarlyStopping:
     ``delta`` is a *relative* improvement threshold (a fraction of the
     current best loss), not an absolute one. The DL runtime models here
     train on a MinMax-scaled target whose total variance is on the order of
-    1e-3; a fixed absolute delta of 1e-4 -- roughly 14% of that variance --
+    1e-3; a fixed absolute delta of 1e-4, roughly 14% of that variance,
     could dwarf genuine, useful improvements once training loss has already
     dropped anywhere near that scale, stopping the model on what looks like
     a plateau but is actually still shrinking. A relative threshold instead
@@ -2241,10 +2132,9 @@ def train_dl_model(model, train_loader, val_loader, criterion, optimizer, epochs
     """
     Trains a generic PyTorch model with Early Stopping and Learning Rate Scheduling.
     """
-    # NOTE: seeding happens in seed_everything(), called by the caller *before*
-    # the model is constructed. Reseeding here would be too late to affect the
-    # weight initialisation and would additionally reset the shuffle stream to
-    # the same order for every trial.
+    # NOTE: seeding happens in seed_everything(), called by the caller before the
+    # model is constructed. Reseeding here would be too late for the weight
+    # initialisation and would reset the shuffle stream for every trial.
     if device is None:
         device = get_default_device()
         
@@ -2358,13 +2248,12 @@ def run_dl_randomsearch(model_name, search_space, train_dataset, val_dataset, in
     best_params = None
     
     val_loader = DataLoader(val_dataset, batch_size=2048, shuffle=False)
-    # test_dataset / scaler_y / y_test_raw are accepted for signature symmetry with
-    # finalize_dl_model but are deliberately never touched here: hyperparameter
-    # selection uses the validation split only, so the test set stays unseen.
+    # test_dataset, scaler_y and y_test_raw are accepted for signature symmetry
+    # with finalize_dl_model and never touched: selection uses validation only.
 
-    # Dedicated RNG for hyperparameter sampling. It must be independent of the
-    # global streams, because seed_everything() resets those once per trial and
-    # would otherwise make every trial sample the same configuration.
+    # Dedicated RNG for hyperparameter sampling, independent of the global
+    # streams: seed_everything() resets those once per trial and would otherwise
+    # make every trial sample the same configuration.
     sampler = random.Random(DL_SEED)
 
     for i in range(num_trials):
@@ -2378,9 +2267,8 @@ def run_dl_randomsearch(model_name, search_space, train_dataset, val_dataset, in
                 
         print(f"  Random Trial {i+1}/{num_trials} -> trying: {params}")
         
-        # Seed immediately before construction so weights, shuffle order and
-        # dropout masks are identical for this trial on every run, and so that
-        # trials differ only by their hyperparameters, not by initialisation luck.
+        # Seed immediately before construction so trials differ only by their
+        # hyperparameters, not by initialisation luck.
         seed_everything(DL_SEED)
         train_loader = DataLoader(train_dataset, batch_size=params['batch_size'], shuffle=True)
         model = create_model_instance(model_name, input_features, params)
@@ -2431,9 +2319,8 @@ def run_dl_gridsearch(model_name, grid_search_space, train_dataset, val_dataset,
     best_params = None
     
     val_loader = DataLoader(val_dataset, batch_size=2048, shuffle=False)
-    # test_dataset / scaler_y / y_test_raw are accepted for signature symmetry with
-    # finalize_dl_model but are deliberately never touched here: grid selection
-    # uses the validation split only, so the test set stays unseen.
+    # test_dataset, scaler_y and y_test_raw are accepted for signature symmetry
+    # with finalize_dl_model and never touched: selection uses validation only.
 
     for i, params in enumerate(grid_combinations):
 
@@ -2464,20 +2351,18 @@ def run_dl_gridsearch(model_name, grid_search_space, train_dataset, val_dataset,
             best_rmse = current_rmse
             best_params = params
 
-    # modeling-11: report (but do not act on) a winner sitting on the grid's
-    # edge. The ML searches widen and re-search automatically
-    # (run_gridsearch_iterative); doing the same here would double an already
-    # long DL tuning stage, so the DL side settles for making the
-    # non-convergence visible rather than silently reporting a boundary value
-    # as if it were an interior optimum.
+    # Report, but do not act on, a winner sitting on the grid's edge. The ML
+    # searches widen and re-search automatically; doing the same here would
+    # double an already long DL tuning stage, so the DL side settles for making
+    # the non-convergence visible.
     if best_params:
         _edge = grid_boundary_params(
             {k: v for k, v in grid_search_space.items() if isinstance(v, list)},
             best_params,
         )
         if _edge:
-            print(f"[{model_name}] NOTE: grid winner is at a boundary for {_edge} -- "
-                  f"the optimum may lie outside the range searched (modeling-11).")
+            print(f"[{model_name}] NOTE: grid winner is at a boundary for {_edge}. "
+                  f"The optimum may lie outside the range searched.")
 
     return best_params, best_rmse
 
@@ -2487,7 +2372,7 @@ def _warn_if_any_seed_collapsed(model_name, seeds, runs) -> None:
     ``evaluate_regression`` judges each run as it is scored, but that warning
     is raised once per call site per process and lands in the middle of the
     training log, while the number that reaches the results table is the mean
-    over seeds -- which one collapsed seed out of three cannot move far enough
+    over seeds, which one collapsed seed out of three cannot move far enough
     to look wrong. Said once, against the seed VALUES the refit ran, so the
     entry can be reported as excluded rather than as a predictor that happened
     to score badly.
@@ -2535,9 +2420,9 @@ def finalize_dl_model(model_name, best_params, train_dataset, val_dataset, input
     save_all_seeds_to : str, optional
         Path template containing a ``{seed}`` placeholder (e.g.
         ``"results/models/lstm_categorical_pt_seed{seed}.pth"``). When given,
-        EVERY seed's trained model is saved to disk under this pattern, not
-        just the first one -- letting a downstream simulation (notebook 05)
-        run all seeds instead of only ever replaying seed0 (robustness-4).
+        Every seed's trained model is saved to disk under this pattern, not
+        just the first one, letting a downstream simulation in notebook 05
+        run all seeds instead of only ever replaying seed0.
         A single-seed call still trains and saves only that one model.
 
     Returns
@@ -2563,14 +2448,10 @@ def finalize_dl_model(model_name, best_params, train_dataset, val_dataset, input
         if save_all_seeds_to is not None:
             _seed_path = save_all_seeds_to.format(seed=seed)
             torch.save(model, _seed_path)
-            # The per-seed files are read back by notebook 05's multi-seed
-            # robustness check, which refuses any artifact without a
-            # provenance sidecar. Writing the model without the sidecar left
-            # that check permanently unsatisfiable: the file exists, so the
-            # "absent is a legitimate skip" branch does not fire, and the
-            # currency check then rejects it with no way to repair it.
-            # The model is passed so the sidecar carries THIS seed's fit rather
-            # than the loop's most recent one.
+            # The per-seed files are read back by notebook 05's robustness check,
+            # which refuses any artifact without a provenance sidecar. Writing
+            # the model without one leaves that check unsatisfiable. The model is
+            # passed so the sidecar carries this seed's fit, not the loop's last.
             record_model_artifact(_seed_path, model)
 
     if len(runs) == 1:
@@ -2588,14 +2469,11 @@ def finalize_dl_model(model_name, best_params, train_dataset, val_dataset, input
     # still be verified against a single number rather than against a mean.
     for k in keys:
         agg[f"{k}_seed0"] = float(runs[0][k])
-    # Every seed's spread evidence, positionally aligned with ``seeds``, not
-    # just the mean and seed 0's. A single collapsed seed survives the
-    # averaging above -- two healthy seeds out of three leave a mean fraction
-    # two-thirds of a healthy one -- while its error metrics are averaged into
-    # the reported headline number regardless. Dropping runs[1:]'s
-    # pred_unique_frac left that collapse with no trace any reader could judge:
-    # the results table printed "no" in the constant-output column and the
-    # exclusion notice named nothing.
+    # Every seed's spread evidence, positionally aligned with seeds, not just the
+    # mean and seed 0's. A single collapsed seed survives the averaging above
+    # while its error metrics are averaged into the headline number. Dropping
+    # runs[1:] left that collapse with no trace: the results table printed "no"
+    # in the constant-output column and the exclusion notice named nothing.
     agg["pred_unique_frac_per_seed"] = [
         None if r.get("pred_unique_frac") is None else float(r["pred_unique_frac"])
         for r in runs
@@ -2643,10 +2521,9 @@ def _finalize_dl_single(model_name, best_params, train_dataset, val_dataset, inp
     metrics = evaluate_regression(y_test_raw, preds_unscaled)
     metrics['train_time'] = train_time
 
-    # Same reason as finalize_ml_model's call: the .pth save cells run
-    # separately from the training cells, so the sidecar has to be able to
-    # describe this fit rather than whatever the tree looks like when the
-    # network is eventually written out.
+    # Same reason as finalize_ml_model's call: the .pth save cells run separately
+    # from the training cells, so the sidecar has to describe this fit rather
+    # than whatever the tree looks like when the network is written out.
     _note_model_fit(final_model)
 
     return final_model, metrics

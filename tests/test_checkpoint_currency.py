@@ -4,7 +4,7 @@ Also covers the model-artifact half of the same guard
 (``model_artifact_is_current`` / ``record_model_artifact``) and the provenance
 snapshot both halves are judged on. That machinery was committed with a message
 claiming "Tests cover both: sidecar absent/present/stale, and provenance carried
-forward on an unchanged re-save" while the commit touched no test file at all --
+forward on an unchanged re-save" while the commit touched no test file at all,
 it is the only thing standing between the reported metrics and a model artifact
 fit by different code, and until now nothing would have noticed its removal.
 
@@ -40,7 +40,7 @@ class _ProvenanceCase(unittest.TestCase):
     environment a result was produced under.
 
     Every test here writes checkpoints and sidecars, so ``_CHECKPOINT_DIR`` is
-    redirected into a temporary directory first -- a stray write into
+    redirected into a temporary directory first, a stray write into
     results/checkpoints/ would corrupt the very provenance these tests exist to
     protect.
     """
@@ -68,9 +68,9 @@ class _ProvenanceCase(unittest.TestCase):
 
         # The two globals _note_model_fit writes are process-wide in the same
         # way, and record_model_artifact falls back to them whenever the caller
-        # passes no model object. Any real fit earlier in the process -- the
+        # passes no model object. Any real fit earlier in the process, the
         # finalize_* tests below, or another test module in the same discovery
-        # run -- leaves a snapshot of ITS tree behind, and a sidecar written
+        # run, leaves a snapshot of its own tree behind, and a sidecar written
         # afterwards would be stamped from that leftover instead of from the
         # fit under test. Every currency assertion here would then hold for the
         # wrong reason: with _note_model_fit removed from finalize_ml_model
@@ -190,7 +190,7 @@ class TestCheckpointCurrency(_ProvenanceCase):
 
     def test_a_recomputed_result_is_stamped_afresh(self):
         """The other half of the carry-forward branch: different metrics mean
-        the result WAS recomputed, so it must take the current provenance and a
+        the result was recomputed, so it must take the current provenance and a
         new timestamp. Carrying the old one forward here would make a freshly
         trained model look stale and send load_checkpoint down the retrain path
         forever.
@@ -216,7 +216,7 @@ class TestRecomputationLicence(_ProvenanceCase):
     reproduces its metrics block bit for bit. Reading that as "loaded, not
     computed" froze the OLD provenance onto a freshly computed result, which
     checkpoint_is_current can then never certify and load_all_checkpoints drops
-    for good -- the Experiment B and summary tables stop being rebuildable from
+    for good, the Experiment B and summary tables stop being rebuildable from
     disk. Which of the two happened is known only to the caller, or to
     load_checkpoint's own refusal, and this is the machinery that carries that
     knowledge from one to the other.
@@ -247,8 +247,8 @@ class TestRecomputationLicence(_ProvenanceCase):
         self.assertIs(T.checkpoint_is_current("exp_b_constant_median"), True)
 
     def test_the_licence_is_consumed_by_the_save_that_answers_it(self):
-        # A save cell re-run later in the same kernel -- old numbers still in
-        # memory, source edited since -- must fall back to the conservative
+        # A save cell re-run later in the same kernel, old numbers still in
+        # memory, source edited since, must fall back to the conservative
         # carry-forward instead of relabelling them as freshly produced.
         self._save_then_change_source()
         T.load_checkpoint("exp_b_constant_median")
@@ -261,8 +261,8 @@ class TestRecomputationLicence(_ProvenanceCase):
     def test_a_successful_load_withdraws_an_earlier_refusal(self):
         """The refusal has to be a STALE one, on a file that exists.
 
-        Written the obvious way -- refuse because the file is missing, save,
-        then load -- the save in the middle consumes the licence before the
+        Written the obvious way, refuse because the file is missing, save,
+        then load, the save in the middle consumes the licence before the
         successful load ever runs, so load_checkpoint's own withdrawal fires
         against an already-empty set and the assertions below hold whether that
         line is there or not. The licence must still be outstanding when the
@@ -284,7 +284,7 @@ class TestRecomputationLicence(_ProvenanceCase):
 
         # Source changes again and the caller writes those loaded numbers back.
         # With the licence still standing they would be restamped with the
-        # current source hash -- a stale result relabelled as freshly produced,
+        # current source hash, a stale result relabelled as freshly produced,
         # which also suppresses the mismatch warning from the next run onwards.
         self._pretend_source_changed("src/tuning.py", digest="CHANGED-AGAIN")
         T.save_checkpoint("exp_a_rf", {"metrics": {"mae": 1.0}, "best_params": {}})
@@ -318,7 +318,7 @@ class TestRecomputationLicence(_ProvenanceCase):
 # Model artifacts: the .joblib / .pth files notebook 05 replays.
 #
 # The save cells used to read `elif dest.exists(): skip`, so an artifact once
-# written was never refreshed -- which is how the trained models came to predate
+# written was never refreshed, which is how the trained models came to predate
 # a feature-engineering fix while the metrics printed beside them had been
 # recomputed, and notebook 05 simulated a pre-fix model against a post-fix test
 # set. The sidecar is what makes that detectable.
@@ -371,7 +371,7 @@ class TestModelArtifactCurrency(_ProvenanceCase):
         training cell precisely so it can be re-run on its own, with the trained
         model still bound in the kernel. Stamping the write then certified
         pre-edit weights as current while ``save_checkpoint``'s carry-forward
-        correctly left the metric beside them stale -- and that artifact sailed
+        correctly left the metric beside them stale, and that artifact sailed
         through notebook 05's stale-artifact gate, which exists to exclude
         exactly it, reinstating the pre-fix-model / post-fix-test-set pairing.
 
@@ -407,7 +407,7 @@ class TestModelArtifactCurrency(_ProvenanceCase):
         self.assertIs(
             T.model_artifact_is_current(dest), False,
             "the model predates the edit, so it must go stale with the metric "
-            "it was scored against -- a re-save cannot launder it into a fit "
+            "it was scored against, a re-save cannot launder it into a fit "
             "under the current tree",
         )
 
@@ -437,7 +437,7 @@ class TestModelArtifactCurrency(_ProvenanceCase):
         Notebook 04's import cell (cd02) ends in
         ``importlib.reload(src.tuning)``, and re-executing the module body used
         to hand a blank registry to precisely the run that reloads to pick a
-        source edit up -- after which ``record_model_artifact`` fell back to the
+        source edit up, after which ``record_model_artifact`` fell back to the
         tree standing at the write and certified pre-edit weights as current.
         Emptying the two globals stands in for that reload: an actual
         ``importlib.reload`` would also discard ``_pretend_source_changed``'s
@@ -471,7 +471,7 @@ class TestModelArtifactCurrency(_ProvenanceCase):
 
         Falling back to the last fit in the kernel is right for the notebooks'
         non-learned baselines, which are computed in the notebook and passed as
-        a path alone -- but applied to a MODEL object it stamps whatever was
+        a path alone, but applied to a model object it stamps whatever was
         trained most recently onto something else entirely, and the sidecar then
         vouches for a tree this process never saw that model fitted under.
         """
@@ -497,7 +497,7 @@ class TestModelArtifactCurrency(_ProvenanceCase):
         self.assertIs(T.model_artifact_is_current(dest), False)
 
     def test_unreadable_sidecar_is_not_current(self):
-        """A truncated sidecar must read as "refit", never as "current" -- the
+        """A truncated sidecar must read as "refit", never as "current", the
         failure has to fall on the safe side.
         """
         dest = self.tmp_path / "rf.joblib"
@@ -507,7 +507,7 @@ class TestModelArtifactCurrency(_ProvenanceCase):
 
     def test_artifact_and_checkpoint_agree_on_what_stale_means(self):
         """A metric and the model beside it must never disagree about staleness
-        -- that disagreement is exactly what produced a per-bucket table pairing
+       , that disagreement is exactly what produced a per-bucket table pairing
         a pre-fix model with a post-fix test set.
         """
         dest = self.tmp_path / "rf.joblib"
@@ -529,8 +529,8 @@ class TestEverySeedCheckpointIsRecorded(_ProvenanceCase):
     ``{seed}`` template the notebook only passes in, and it wrote them with no
     sidecar. Notebook 05's multi-seed robustness cell gates exactly those paths,
     so the gate was unsatisfiable: the files exist, which rules out its "absent
-    is a legitimate skip" branch, and re-running notebook 04 -- the remedy the
-    refusal prints -- produced the same unstamped files again. That cell is the
+    is a legitimate skip" branch, and re-running notebook 04, the remedy the
+    refusal prints, produced the same unstamped files again. That cell is the
     only evidence behind the claim that the single-seed ranking is robust to
     initialization.
 
@@ -564,7 +564,7 @@ class TestEverySeedCheckpointIsRecorded(_ProvenanceCase):
             self.assertIs(
                 T.model_artifact_is_current(path), True,
                 "notebook 05 refuses a per-seed checkpoint without a sidecar, "
-                "and re-running notebook 04 is the only remedy it names -- so a "
+                "and re-running notebook 04 is the only remedy it names, so a "
                 "sidecar missing here can never be repaired",
             )
 
@@ -608,7 +608,7 @@ class TestProvenanceCoverage(_ProvenanceCase):
         src/config_utils.py is the one dependency still outside the list: it
         decides which YAML is read and how, so a change there can move the
         numbers even though the YAMLs themselves are hashed. Named here rather
-        than silently tolerated -- the assertion is a subset, so closing that
+        than silently tolerated, the assertion is a subset, so closing that
         hole keeps this passing while opening a new one does not.
         """
         known_untracked = {"src/config_utils.py"}
@@ -646,7 +646,7 @@ class TestProvenanceCoverage(_ProvenanceCase):
         use_processed=False, so the processed utilization CSV is written by
         notebook 00 and read by no training cell. Hashing it fired a
         data-change warning on 26 of 31 checkpoints whose numbers it cannot
-        influence while a swap of the raw trace went unreported -- a guard that
+        influence while a swap of the raw trace went unreported, a guard that
         cries wolf about an unread file teaches the reader to skip the warning
         block entirely.
         """
@@ -777,7 +777,7 @@ class TestTrainingNotebooksAreFingerprinted(_ProvenanceCase):
     def test_the_scheduling_notebooks_are_deliberately_not_hashed(self):
         """Notebook 05 trains nothing and writes no checkpoint, so it cannot
         change a checkpoint's numbers. Hashing it would invalidate every
-        training result whenever a scheduling cell is edited -- the cry-wolf
+        training result whenever a scheduling cell is edited, the cry-wolf
         failure the guard is meant to avoid.
         """
         self.assertFalse(
@@ -793,8 +793,8 @@ class TestTrainingNotebooksAreFingerprinted(_ProvenanceCase):
 
     def test_only_code_cells_are_hashed(self):
         """Hashing the .ipynb bytes would fold in stored outputs and execution
-        counts, so merely running the notebook -- or clearing its outputs, or
-        editing prose -- would invalidate every checkpoint it just wrote, none
+        counts, so merely running the notebook, or clearing its outputs, or
+        editing prose, would invalidate every checkpoint it just wrote, none
         of which changes a number.
         """
         before = T._notebook_code_sha256(self._notebook([

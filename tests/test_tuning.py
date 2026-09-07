@@ -29,7 +29,7 @@ class TestMakeNarrowGrid(unittest.TestCase):
     def test_dropout_is_carried_through_not_dropped(self):
         """dropout was previously absent from every DL model's `allowed` set,
         so random search's chosen value never reached the grid or final
-        refit -- both silently trained at the framework default (0.2)
+        refit, both silently trained at the framework default (0.2)
         regardless of what random search had actually picked.
         """
         for model_name, best_params in [
@@ -71,7 +71,7 @@ class TestMakeNarrowGrid(unittest.TestCase):
         configs/models.yaml offers colsample_bytree down to 0.3 for both
         boosters. When random search picked 0.3, every multiplicative variant
         (0.15 ... 0.45) clipped up to 0.5 and the grid degenerated to the single
-        value [0.5] -- so the refinement stage could only return 0.5, a point
+        value [0.5], so the refinement stage could only return 0.5, a point
         that had never been scored against the 0.3 it was supposed to refine,
         and best_params reported it anyway.
         """
@@ -96,7 +96,7 @@ class TestMakeNarrowGrid(unittest.TestCase):
 
     def test_a_fraction_the_search_can_reach_is_never_replaced_by_the_old_floor(self):
         """Even when the grid is shrunk to one point, that point must be the
-        value random search actually selected -- not 0.5, which the old floor
+        value random search actually selected, not 0.5, which the old floor
         substituted in whenever the winner was below it.
         """
         grid = make_narrow_grid(
@@ -111,7 +111,7 @@ class TestMakeNarrowGrid(unittest.TestCase):
 class TestFinalizeMlModelDataBudget(unittest.TestCase):
     """Regression tests for code_bugs-6: XGB/LGBM final refits must use
     100% of X_train (matching RF's data budget), with the tree count set
-    to whatever early stopping found on the internal validation split --
+    to whatever early stopping found on the internal validation split,
     not the internal split's model returned directly, which would leave
     the last ~10% of chronologically-ordered training rows never
     contributing a single gradient update.
@@ -132,7 +132,7 @@ class TestFinalizeMlModelDataBudget(unittest.TestCase):
         The two assertions above compare model.n_estimators against
         metrics['n_estimators_effective'], but both sides are the same
         best_n_estimators variable, so they say nothing about which rows the
-        final estimator was fit on -- the very thing this class is named for.
+        final estimator was fit on, the very thing this class is named for.
         Spying on fit is the only way to observe the data budget directly.
         """
         from src.tuning import finalize_ml_model
@@ -152,7 +152,7 @@ class TestFinalizeMlModelDataBudget(unittest.TestCase):
         return seen_rows, len(X_train), model, metrics
 
     def test_xgb_final_refit_sees_every_training_row(self):
-        """The LAST fit -- the one that produces the returned model -- must get
+        """The LAST fit, the one that produces the returned model, must get
         100% of X_train. The first fit is the early-stopping search on the
         chronological 90% split and is allowed to be short; the returned model
         must not be.
@@ -172,7 +172,7 @@ class TestFinalizeMlModelDataBudget(unittest.TestCase):
         )
         # The booster is the artefact that carries the trees, so read the count
         # off it rather than off the constructor argument the metric was copied
-        # from -- otherwise both sides of the comparison are the same variable.
+        # from, otherwise both sides of the comparison are the same variable.
         self.assertEqual(
             model.get_booster().num_boosted_rounds(), metrics["n_estimators_effective"]
         )
@@ -221,7 +221,7 @@ class TestFinalizeMlModelDataBudget(unittest.TestCase):
 
     def test_rf_is_fit_once_on_the_whole_training_set(self):
         """RF is the reference budget the other two families are compared
-        against, so it must stay a single fit over 100% of X_train -- if it
+        against, so it must stay a single fit over 100% of X_train, if it
         ever grew an internal holdout the comparison above would go quiet
         while both sides moved together.
         """
@@ -249,7 +249,7 @@ class TestFinalizeMlModelDataBudget(unittest.TestCase):
 
         Both boosters minimise MAE; RandomForest minimises squared error and is
         then bolded in the same MAE table. A row without this column cannot tell
-        a reader which comparison is controlled for loss -- and because the
+        a reader which comparison is controlled for loss, and because the
         criterion is itself searchable in configs/models.yaml, the value has to
         come from best_params rather than from the family name.
         """
@@ -333,7 +333,7 @@ class TestEnsembleCollapseWarning(unittest.TestCase):
 
     def test_the_budget_proportional_floor_rises_above_the_absolute_one(self):
         """A 1300-tree search makes 13 the floor, so a count that would be fine
-        against a small budget is a collapse against a large one -- 13 warns
+        against a small budget is a collapse against a large one, 13 warns
         where 19 (of 600) did not.
         """
         self.assertTrue(self._warns(13, 1300))
@@ -379,7 +379,7 @@ class TestEnsembleCollapseWarning(unittest.TestCase):
 class TestGridConvergence(unittest.TestCase):
     """Regression tests for modeling-11: a narrow grid can only return values
     it offered, so a winner sitting on the grid's edge means the search never
-    converged -- that has to be detected, widened once, and reported."""
+    converged, that has to be detected, widened once, and reported."""
 
     def test_boundary_detection_flags_edges_and_ignores_interior(self):
         from src.tuning import grid_boundary_params
@@ -507,7 +507,7 @@ class TestFinalizeDlModelSaveAllSeeds(unittest.TestCase):
 
         ``is_degenerate_prediction`` judges the mean, the ``*_seed0`` values and
         each entry of these two lists. Without them a middle seed predicting a
-        single constant leaves no trace any reader could judge -- two healthy
+        single constant leaves no trace any reader could judge, two healthy
         seeds out of three keep the mean fraction ordinary, seed0 is one of the
         healthy ones, and the collapsed run's error metrics are averaged into
         the headline MAE the results table prints. Positionally aligned with
@@ -532,7 +532,7 @@ class TestFinalizeDlModelSaveAllSeeds(unittest.TestCase):
 
         Notebook 05 loads these paths to report the seed spread of the
         scheduling results. If the loop ever writes the first seed's network to
-        every path -- one wrong variable -- the files are all present, n_seeds
+        every path, one wrong variable, the files are all present, n_seeds
         is still 3, the reported spread collapses to zero, and the existence
         check above stays green while the robustness claim it backs is
         fabricated. The artefacts themselves have to be shown to differ.
@@ -555,8 +555,8 @@ class TestFinalizeDlModelSaveAllSeeds(unittest.TestCase):
                         f"seeds {self.SEEDS[i]} and {self.SEEDS[j]} were saved as "
                         "the same network, so the reported seed spread is not real",
                     )
-            # ...and the returned model -- the one whose score is recorded under
-            # the *_seed0 keys -- must be the first seed's, not some other one.
+            # ...and the returned model, the one whose score is recorded under
+            # the *_seed0 keys, must be the first seed's, not some other one.
             self.assertTrue(torch.equal(weights[0], next(model.parameters()).detach()))
 
 
@@ -566,7 +566,7 @@ class TestEarlyStopping(unittest.TestCase):
     def test_small_improvement_at_small_loss_scale_is_not_penalized(self):
         """A real improvement that is smaller than the fixed 1e-4 the old
         absolute-delta implementation used must still count as progress once
-        the loss itself is already at a comparably small scale -- exactly the
+        the loss itself is already at a comparably small scale, exactly the
         regime DL final refits operate in on a MinMax-scaled target.
         """
         es = EarlyStopping(patience=3, delta=1e-4)

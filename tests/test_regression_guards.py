@@ -176,8 +176,8 @@ class TestDeepLearningSeedingAtTheCallSite(unittest.TestCase):
     fit and save every published DL artifact.
 
     PyTorch draws initial weights from the global RNG when the module is
-    constructed, so the guarantee is entirely about ordering -- seed_everything
-    must run BEFORE create_model_instance, at every call site, on every seed.
+    constructed, so the guarantee is entirely about ordering, seed_everything
+    must run before create_model_instance, at every call site, on every seed.
     Nothing about the models themselves is asserted here; the spy records
     torch.initial_seed() at the moment of construction, which is the one
     observable that distinguishes "seeded first" from "seeded afterwards".
@@ -421,7 +421,7 @@ class TestDegeneratePredictorIsRefused(unittest.TestCase):
 
     def test_the_refusal_carries_what_a_results_table_needs(self):
         # The refused row has to say which policy, on what column, and what the
-        # single value was -- that is what makes it a reported result rather
+        # single value was, that is what makes it a reported result rather
         # than a silent skip.
         with self.assertRaises(DegeneratePredictionError) as raised:
             MultiNodeClusterSimulator(
@@ -513,7 +513,7 @@ class TestUtilizationHistoryClosesAtMakespan(unittest.TestCase):
     advances, so the loop used to exit one event short: the last recorded time
     was the second-to-last event, never the final completion. Consumers
     integrate this history as a left Riemann sum, which then dropped the drain
-    interval entirely -- and the tail of a run is exactly when the cluster
+    interval entirely, and the tail of a run is exactly when the cluster
     empties, so time-weighted utilization came out too high (0.8804 instead of
     0.8765 on a backfilled 800-job run, 2-3% on shorter replays).
     """

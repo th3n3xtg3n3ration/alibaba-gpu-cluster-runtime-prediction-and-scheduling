@@ -3,7 +3,7 @@ tests/test_feature_engineering.py
 
 Unit tests for src.feature_engineering.
 
-Tests cover job table construction, temporal feature extraction, 
+Tests cover job table construction, temporal feature extraction,
 and validation of required columns.
 """
 import unittest
@@ -26,7 +26,7 @@ class TestFeatureEngineering(unittest.TestCase):
         reported categorical model went through the unrestricted
         'with_categorical' branch, its train dtype carried all 681 users
         (103 of which occur in no training row) and all 5 gpu_types, and the
-        test below -- which only ever asked for the other name -- passed.
+        test below, which only ever asked for the other name, passed.
         Asserting the two are element-wise identical is what makes that
         divergence impossible to reintroduce.
         """
@@ -56,7 +56,7 @@ class TestFeatureEngineering(unittest.TestCase):
         self.assertGreater(int(X_test_alias["user"].isna().sum()), 0)
 
     def test_prepare_features_runs_the_sweepline_over_cpu_only_jobs_too(self):
-        """The pipeline function -- not just its helpers -- must count CPU-only
+        """The pipeline function, not just its helpers, must count CPU-only
         jobs in the cluster-load features.
 
         test_cpu_only_jobs_are_kept_for_cluster_load_but_dropped_for_modelling
@@ -115,7 +115,7 @@ class TestFeatureEngineering(unittest.TestCase):
         'with_categorical_native', X_train/X_test are sliced from a job_df
         whose categorical dtype was assigned before the chronological
         split, so a plain `.astype("category")` is a no-op that keeps every
-        category seen anywhere in the full dataset -- including ones that
+        category seen anywhere in the full dataset, including ones that
         appear only in the test partition and that the model never trained
         on a single row of. Train's category list must be derived from
         train alone, and a test-only category must map to NaN rather than
@@ -148,9 +148,9 @@ class TestFeatureEngineering(unittest.TestCase):
             "gpu_type": ["T4", "V100"]
         }
         df = pd.DataFrame(data)
-        
+
         result = build_job_table_from_sample(df, time_unit="s")
-        
+
         self.assertEqual(len(result), 2)
         self.assertIn("job_runtime", result.columns)
         self.assertIn("gpu_demand", result.columns)
@@ -178,7 +178,7 @@ class TestFeatureEngineering(unittest.TestCase):
 
         ``dt.dayofweek`` was the original committed version and was corrected in
         4e45f74 without a test, so the leaking form is one plausible edit away
-        -- including a well-meant "make the code match the name" change. Only a
+       , including a well-meant "make the code match the name" change. Only a
         fixture spanning more than a week tells the two apart: over 8 days the
         counter keeps climbing while the calendar weekday wraps, and it is that
         wrap the trace cannot afford. The split is chronological, so trace-day 7
@@ -187,9 +187,9 @@ class TestFeatureEngineering(unittest.TestCase):
         earlier.
         """
         df = pd.DataFrame({"arrival_time": pd.to_datetime([
-            "1970-01-01 00:00:00",   # trace day 0 -- a Thursday
+            "1970-01-01 00:00:00",   # trace day 0, a Thursday
             "1970-01-04 12:00:00",   # trace day 3
-            "1970-01-08 06:00:00",   # trace day 7 -- Thursday again
+            "1970-01-08 06:00:00",   # trace day 7, Thursday again
         ])})
 
         result = add_temporal_features(df)
@@ -206,7 +206,7 @@ class TestFeatureEngineering(unittest.TestCase):
 
     def test_day_of_week_is_counted_from_the_first_arrival(self):
         """Zero is the trace's own start, not midnight of whatever date the
-        release happens to carry -- the public trace does not disclose its
+        release happens to carry, the public trace does not disclose its
         collection date, so an absolute origin would be meaningless.
         """
         df = pd.DataFrame({"arrival_time": pd.to_datetime([
@@ -236,8 +236,8 @@ class TestFeatureEngineering(unittest.TestCase):
         """Regression test for leakage-4 / robustness-11.
 
         The sweep-line features describe the background load a job arrives
-        into, so CPU-only jobs (num_gpu == 0) -- which occupy real CPU
-        capacity on the same machines -- must be counted there, even though
+        into, so CPU-only jobs (num_gpu == 0), which occupy real CPU
+        capacity on the same machines, must be counted there, even though
         they are not themselves modelled. Previously they were filtered out
         before the sweep-line ran, making cluster_load_cpu / active_job_count
         describe GPU-job traffic rather than cluster load.
@@ -280,8 +280,8 @@ class TestFeatureEngineering(unittest.TestCase):
 class TestTiedArrivalsKeepTheOrderTheTraceGaveThem(unittest.TestCase):
     """Row order out of the feature pipeline is the trace's own, ties included.
 
-    Two sorts decide that order -- the one in add_cluster_utilization_features
-    and the one in prepare_features_for_model -- and both have to be stable.
+    Two sorts decide that order, the one in add_cluster_utilization_features
+    and the one in prepare_features_for_model, and both have to be stable.
     Neither changes a single feature value (merge_asof keys on arrival_sec
     alone, and every per-job value is identical either way), so the permutation
     is invisible to every accuracy assertion in this suite: with
@@ -291,18 +291,18 @@ class TestTiedArrivalsKeepTheOrderTheTraceGaveThem(unittest.TestCase):
 
     What that order feeds is not invisible. The sequence models window over
     consecutive rows, and notebook 05 uses row position as the simulator's
-    arrival tie-break while asserting the order is the trace's own -- so a
+    arrival tie-break while asserting the order is the trace's own, so a
     re-permutation moves jobs between windows and changes which of two
     same-second arrivals the scheduler sees first.
 
-    The references below are built WITHOUT calling either function, which is the
+    The references below are built without calling either function, which is the
     point: the sweep-line tests above build theirs by calling
     add_cluster_utilization_features, so they inherit whatever permutation it
     produced and agree with it whichever sort it used.
     """
 
     # 24 rows in ties of 3. numpy's introsort only reaches quicksort above 16
-    # elements -- below that it uses insertion sort, which is stable -- so a
+    # elements, below that it uses insertion sort, which is stable, so a
     # smaller fixture would come back in input order under either sort and
     # would assert nothing at all.
     TIED_ROWS = 24
@@ -329,7 +329,7 @@ class TestTiedArrivalsKeepTheOrderTheTraceGaveThem(unittest.TestCase):
         # Guards against a vacuous pass: the default sort has to actually
         # disagree with the input here, or the assertion below is satisfied by
         # an unstable sort too. If a pandas/numpy change ever makes these equal
-        # the fixture needs growing -- the assertion is not the part to drop.
+        # the fixture needs growing, the assertion is not the part to drop.
         self.assertNotEqual(
             job.sort_values("arrival_sec")["job_id"].tolist(), expected,
             "this fixture no longer tells a stable sort apart from the default "
@@ -355,7 +355,7 @@ class TestTiedArrivalsKeepTheOrderTheTraceGaveThem(unittest.TestCase):
         job = build_job_table_from_sample(raw, time_unit="s", include_cpu_only=True)
 
         # The trace ships sorted, so its own row order IS the stable sort's
-        # output -- which is what makes "the order is the trace's own" a
+        # output, which is what makes "the order is the trace's own" a
         # statement about this frame rather than about the sort.
         self.assertTrue(job["arrival_sec"].is_monotonic_increasing)
         expected = job["job_id"].tolist()

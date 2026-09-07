@@ -127,10 +127,10 @@ def build_job_table_from_sample(
     # Normalize core fields
     # ------------------------------------------------------------------
     job["job_runtime"] = job["duration"].astype(float)
-    # Kept as float: Alibaba PAI supports fractional GPU allocation (GPU sharing),
-    # so num_gpu legitimately takes values such as 0.25 or 0.5. Casting to int here
-    # would truncate every sub-1.0 request to zero and erase the GPU demand of
-    # roughly half the trace.
+    # Kept as float: Alibaba PAI supports fractional GPU allocation, so num_gpu
+    # legitimately takes values such as 0.25 or 0.5. Casting to int would
+    # truncate every sub-1.0 request to zero and erase the GPU demand of roughly
+    # half the trace.
     job["gpu_demand"] = job["num_gpu"].astype(float)
 
     # ------------------------------------------------------------------
@@ -175,15 +175,15 @@ def add_temporal_features(job: pd.DataFrame) -> pd.DataFrame:
         - ``hour_of_day``  : Hour of submit time [0, 23]. The Alibaba PAI
           trace's ``submit_time`` is a relative offset, not a real
           timestamp (see ``day_of_week`` below), so this is a 24-hour
-          cyclical phase of unknown absolute alignment -- still a
+          cyclical phase of unknown absolute alignment, still a
           meaningful diurnal-rhythm signal, just not "9am" in any
           verifiable sense.
         - ``day_of_week``  : Trace-relative day index (0, 1, 2, ...),
-          counted from the first job's arrival, NOT the calendar weekday
+          counted from the first job's arrival, not the calendar weekday
           [0=Mon, 6=Sun] the name suggests. The public trace release does
           not disclose its real collection date, and the trace spans only
           ~7.7 days, so computing an actual ``dt.dayofweek`` here would
-          fold trace-day 0 and trace-day 7 onto the same value -- with
+          fold trace-day 0 and trace-day 7 onto the same value, with
           this dataset's chronological train/test split, every occurrence
           of that value in training then comes from trace-day 0 while the
           test set's occurrences come from trace-day 7, a leakage/
@@ -269,18 +269,13 @@ def add_cluster_utilization_features(
         - ``cluster_load_gpu``  : background GPU demand at arrival.
         - ``active_job_count``  : number of concurrently running jobs at arrival.
     """
-    # kind="mergesort" (stable) is load-bearing, not a preference: 35,478 of the
-    # trace's 100,000 rows share an arrival_sec with at least one other job, and
-    # the default quicksort permutes 13,187 of them even though the input already
-    # arrives sorted. The feature values are unaffected (merge_asof keys only on
-    # arrival_sec, and every per-job value is identical either way), but this
-    # frame's row order survives into the results: the sort in
-    # prepare_features_for_model below is itself stable and therefore only
-    # freezes whatever permutation it receives, the sequence models window over
+    # kind="mergesort" is load-bearing, not a preference: 35,478 of the trace's
+    # 100,000 rows share an arrival_sec with at least one other job, and the
+    # default quicksort permutes 13,187 of them even though the input already
+    # arrives sorted. The feature values are unaffected, but this frame's row
+    # order survives into the results: the sequence models window over
     # consecutive rows, and notebook 05 uses row position as the simulator's
-    # arrival tie-break while asserting the order is the trace's own. A stable
-    # sort keeps tied arrivals where the trace put them instead of where the
-    # sort implementation happened to put them.
+    # arrival tie-break while asserting the order is the trace's own.
     df = job.copy().sort_values("arrival_sec", kind="mergesort")
 
     # Guard: num_cpu may not exist in all dataset variants
@@ -473,14 +468,13 @@ def prepare_features_for_model(
             job_df["arrival_time"] = pd.to_datetime(job_df["arrival_time"])
     else:
         raw_df = load_sample(which=dataset)
-        # leakage-4 / robustness-11: the sweep-line features describe the
-        # background load a job arrives into, so they are computed over EVERY
-        # job in the trace -- including the CPU-only jobs (num_gpu == 0, 17.8%
-        # of rows, median runtime 955 s) that consume real CPU capacity on the
-        # same machines. Filtering those out first, as this pipeline used to,
-        # made cluster_load_cpu / active_job_count a measure of GPU-job traffic
-        # rather than of cluster load. Modelling still runs on GPU jobs only --
-        # the restriction just happens after the load is computed, not before.
+        # The sweep-line features describe the background load a job arrives
+        # into, so they are computed over every job in the trace, including the
+        # CPU-only jobs that consume real CPU capacity on the same machines.
+        # Filtering those out first made cluster_load_cpu and active_job_count a
+        # measure of GPU-job traffic rather than of cluster load. Modelling still
+        # runs on GPU jobs only; the restriction happens after the load is
+        # computed, not before.
         job_df = build_job_table_from_sample(raw_df, time_unit=time_unit, include_cpu_only=True)
         job_df = add_temporal_features(job_df)
         job_df = add_categorical_features(job_df)
@@ -490,12 +484,11 @@ def prepare_features_for_model(
     # ------------------------------------------------------------------
     # Enforce chronological row order.
     #
-    # With shuffle=False the split below simply takes the leading 80% of rows,
-    # so "chronological" holds only if the frame is already ordered by arrival.
-    # The Alibaba trace happens to ship sorted, which means a differently
-    # ordered copy of the same data would silently produce a non-chronological
-    # split that still looks correct. Sorting here makes the guarantee explicit
-    # rather than inherited from the input file.
+    # With shuffle=False the split below takes the leading 80% of rows, so
+    # chronological holds only if the frame is already ordered by arrival. The
+    # Alibaba trace ships sorted, which means a differently ordered copy of the
+    # same data would silently produce a non-chronological split that still
+    # looks correct. Sorting here makes the guarantee explicit.
     # ------------------------------------------------------------------
     if "arrival_sec" in job_df.columns:
         job_df = job_df.sort_values("arrival_sec", kind="mergesort").reset_index(drop=True)
@@ -532,8 +525,7 @@ def prepare_features_for_model(
     if shuffle:
         # Randomising the split lets a model train on jobs that arrive after the
         # ones it is scored on. On this trace that inflates R2 several-fold and
-        # is exactly the leakage the chronological design exists to prevent, so
-        # it must never happen unnoticed.
+        # is the leakage the chronological design exists to prevent.
         warnings.warn(
             "prepare_features_for_model(shuffle=True) produces a randomised, "
             "NON-chronological split. Test jobs will precede training jobs in "
@@ -581,30 +573,23 @@ def prepare_features_for_model(
         X_test = X_test_full[numeric_cols].copy()
 
     elif feature_mode in ("with_categorical_native", "with_categorical"):
-        # ONE branch for both names, deliberately. "with_categorical" used to be
-        # a second branch that returned the same columns (X_full is already
-        # numeric_cols + categorical_cols, so slicing it changed nothing) but
-        # skipped the category handling below -- and "with_categorical" is the
-        # name notebooks 04 and 05 actually pass, so every reported categorical
-        # model was built without the mitigation while the mitigated branch sat
-        # unused. Two paths that are only correct while they stay identical do
-        # not stay identical; do not split them apart again.
+        # One branch for both names, deliberately. "with_categorical" used to be
+        # a second branch that returned the same columns but skipped the category
+        # handling below, and it is the name notebooks 04 and 05 pass, so every
+        # reported categorical model was built without the mitigation while the
+        # mitigated branch sat unused. Do not split them apart again.
         X_train = X_train_full.copy()
         X_test = X_test_full.copy()
         for col in categorical_cols:
-            # X_train_full/X_test_full are both slices of a job_df whose
-            # categorical dtype was assigned before the split, so a plain
-            # .astype("category") on an already-categorical column is a
-            # no-op that keeps every category seen anywhere in the full
-            # dataset -- on this trace that is 103 of 681 users and 1 of 5
-            # gpu_types that occur only in the test partition, which the model
-            # never trained on a single row of (leakage-6). It also keeps
-            # categories contributed solely by the CPU-only rows that
-            # add_categorical_features saw and the gpu_demand > 0 filter then
-            # dropped. remove_unused_categories() derives the category list
-            # from what TRAIN actually contains, and rebuilding test against
-            # that list maps anything outside it to NaN instead of silently
-            # carrying it as a "known" category.
+            # X_train_full and X_test_full are slices of a job_df whose
+            # categorical dtype was assigned before the split, so .astype
+            # ("category") on an already-categorical column is a no-op that keeps
+            # every category seen anywhere in the full dataset. On this trace
+            # that is 103 of 681 users and 1 of 5 gpu_types occurring only in the
+            # test partition, which the model never trained on a single row of.
+            # remove_unused_categories() derives the list from what train
+            # contains, and rebuilding test against it maps anything outside to
+            # NaN instead of carrying it as a known category.
             X_train[col] = X_train[col].astype("category").cat.remove_unused_categories()
             train_categories = X_train[col].cat.categories
             X_test[col] = pd.Categorical(X_test[col], categories=train_categories)

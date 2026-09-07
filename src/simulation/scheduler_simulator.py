@@ -82,8 +82,8 @@ class DegeneratePredictionError(ValueError):
     around the call would not tell the two apart.
 
     A refusal is a result and is meant to be reported as one: the attributes
-    carry what a results table needs to name it -- which policy was refused,
-    on which column, and what the single value was -- so the row can read
+    carry what a results table needs to name it: which policy was refused,
+    on which column, and what the single value was, so the row can read
     "excluded: predictions collapsed to a constant" instead of being reported
     as an evaluated predictor that happened to score 0.00%.
 
@@ -234,7 +234,7 @@ class SJFPredScheduler(SchedulerBase):
         ``idxmin`` on a constant column returns the first row of the ready
         queue, and the queue is held in arrival order, so a predictor that
         emits one value for every job turns this policy into FIFO while it is
-        still reported — with its own MAE/R2 — as a distinct ML scheduler. A
+        still reported, with its own MAE and R2, as a distinct ML scheduler. A
         shipped checkpoint did exactly that (one value, 4128.124023, for all
         16,437 test jobs), and its run matched the FIFO baseline in every
         digit of every metric; nothing in the pipeline noticed. A degenerate
@@ -260,13 +260,10 @@ class SJFPredScheduler(SchedulerBase):
                 "'predicted_runtime' holds no finite value, so no job can be "
                 "ranked ahead of another."
             )
-        # A single-job workload is trivially constant and still perfectly
-        # schedulable, so only a real queue is judged. The rule itself lives in
-        # prediction_ranks_nothing, shared with the metrics-side verdict in
-        # src/models/evaluation.py: when the two owned separate thresholds they
-        # disagreed about the same model -- notebook 04 printed Exp A LightGBM
-        # (Numeric) as EXCLUDED while this class simulated it and notebook 05
-        # reported its 20.8% JCT improvement.
+        # A single-job workload is trivially constant and still schedulable, so
+        # only a real queue is judged. The rule lives in prediction_ranks_nothing,
+        # shared with the metrics-side verdict in src/models/evaluation.py, so
+        # the two cannot disagree about the same model.
         if (
             len(jobs) > 1
             and finite.size == values.size
@@ -277,7 +274,7 @@ class SJFPredScheduler(SchedulerBase):
                 f"{self.policy_name}: 'predicted_runtime' is the constant {constant!r} "
                 f"across all {len(jobs)} jobs: this policy would order the queue "
                 "exactly as FIFO does while being reported as a distinct predictor. "
-                "Repair the predictor, or record the policy as excluded -- it is the "
+                "Repair the predictor, or record the policy as excluded. It is the "
                 "no-prediction baseline, not a predictor that scored no improvement.",
                 policy=self.policy_name,
                 column="predicted_runtime",
@@ -376,10 +373,8 @@ class ClusterSimulator:
             - ``slowdown``
         """
         # Once, before any state is built: a policy that ranks on a data column
-        # checks here that the column can rank at all. A constant prediction
-        # column raises DegeneratePredictionError -- the one exception a caller
-        # replaying many policies is meant to catch and record, which is why
-        # nothing further down this method raises that type.
+        # checks here that the column can rank at all. A constant column raises
+        # DegeneratePredictionError, which is why nothing further down raises it.
         self.scheduler.validate_workload(jobs)
 
         jobs = jobs.sort_values("submit_time").reset_index(drop=True)

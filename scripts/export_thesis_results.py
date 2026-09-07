@@ -10,7 +10,7 @@ Ensures 100% mathematical and visual consistency between the notebooks and thesi
 In English mode this script is also the single mechanism that populates
 ``thesis/latex/figures/``: every extracted figure whose (notebook, position) pair
 appears in ``THESIS_FIGURE_MAP`` is additionally written there under the exact
-filename the LaTeX sources include. No manual copying or renaming is needed —
+filename the LaTeX sources include. No manual copying or renaming is needed:
 re-running the notebooks and then this script brings the thesis figures up to
 date in one step. Turkish notebooks are never copied into the thesis (the
 thesis is written in English), so ``--lang tr`` only refreshes that language's
@@ -23,9 +23,9 @@ meant a ``--lang tr`` run overwrote the English artifact set.
 A notebook's stored outputs are exported only when they read as the record of
 one clean top-to-bottom run (see ``_audit_stored_outputs``). A notebook holding
 the output of a cell that raised, or of a cell that never ran, is skipped in
-full — nothing of it reaches the export directory or the thesis.
+full, and nothing of it reaches the export directory or the thesis.
 
-That audit judges a notebook against itself, so it cannot see a SOURCE change
+That audit judges a notebook against itself, so it cannot see a source change
 made after the run. The notebooks whose figures and tables report model results
 (04 and both 05 variants) are therefore also checked against the provenance
 records the training code writes: ``_stale_model_inputs`` refuses them when a
@@ -33,20 +33,20 @@ checkpoint or a saved model artifact is no longer certified current by
 ``src.tuning``, the same predicate the notebooks' own ``if ckpt:`` branches and
 notebook 05's ``_reject_stale_artifacts`` use, over the same set of files (see
 ``_loaded_model_artifacts``). Without it the default no-``--execute`` path
-harvested whatever a notebook happened to have stored — produced under any
-earlier source tree — and copied the mapped figures straight into
+harvested whatever a notebook happened to have stored, produced under any
+earlier source tree, and copied the mapped figures straight into
 ``thesis/latex/figures``.
 
-Every notebook the script refuses — untrusted stored outputs, stale model
-inputs, a figure count that no longer matches ``EXPECTED_FIGURE_COUNT``, a
-figure position that is no longer produced by the cell ``THESIS_FIGURE_MAP``
-pins it to, or no stored outputs at all — is collected and re-reported at the
-end of the run, and the script then exits non-zero so
-``run_all_experiments.sh`` stops instead of reporting success over an export
-(and a thesis figure directory) that was NOT refreshed. The export files are
+Every notebook the script refuses, whether for untrusted stored outputs, stale
+model inputs, a figure count that no longer matches ``EXPECTED_FIGURE_COUNT``,
+a figure position no longer produced by the cell ``THESIS_FIGURE_MAP`` pins it
+to, or no stored outputs at all, is collected and re-reported at the end of the
+run. The script then exits non-zero so ``run_all_experiments.sh`` stops instead
+of reporting success over an export, and a thesis figure directory, that was
+not refreshed. The export files are
 buffered during extraction and written only after the figure count is verified,
 so a notebook refused up to that point leaves nothing behind in the export
-directory — it used to leave files whose content had shifted under unchanged
+directory. It used to leave files whose content had shifted under unchanged
 positional names. A figure-position refusal comes later and stops only the
 thesis copy: the export filenames ARE positions, so that set stays internally
 consistent even when a figure cell has moved.
@@ -82,7 +82,7 @@ def _export_dirs(lang: str) -> tuple[Path, Path]:
     ``NB05_256GPU`` are reused by NOTEBOOKS_TR), and ``_clean_stale_exports``
     deletes by prefix with no language filter, so while both wrote into one
     directory a ``--lang tr`` run deleted the English figures and replaced the
-    English tables with Turkish ones under the identical names — silently and
+    English tables with Turkish ones under the identical names, silently and
     with exit status 0. It was not even a like-for-like swap: the table position
     index differs between the mirrors, so NB04_Table10.html changed from one
     benchmark table to a different one, and nothing in a filename or in a file
@@ -96,8 +96,8 @@ def _export_dirs(lang: str) -> tuple[Path, Path]:
     return root / "png", root / "html"
 
 HTML_STYLE_HEADER = (
-    # charset declaration: these tables carry UTF-8 (Turkish labels, unit
-    # symbols, the — in policy names) and browsers guessed the encoding without it.
+    # charset declaration: these tables carry UTF-8, Turkish labels and unit
+    # symbols, and browsers guessed the encoding without it.
     "<html><head><meta charset=\"utf-8\"><style>"
     "table{border-collapse:collapse;font-family:Arial,sans-serif;font-size:12px} "
     "td,th{border:1px solid #ccc;padding:6px 10px} th{background:#f0f0f0}"
@@ -128,26 +128,19 @@ THESIS_FIG_DIR = BASE_DIR / "thesis" / "latex" / "figures"
 
 # (notebook prefix, Nth figure produced by that notebook)
 #     -> (id of the cell that produces it, thesis filename).
-# The position is the order in which the figure appears when the notebook is run
-# top to bottom, exactly as the extraction loop below counts them. If a figure
-# cell is ever added, removed, or reordered in a notebook, THIS TABLE MUST BE
-# UPDATED to match. Safety rule: a notebook's figures are copied into the thesis
-# only when EVERY position this table expects from it was produced — a partial
-# or stale run (where positions may have shifted) is skipped with a loud
-# warning instead of silently overwriting thesis figures with the wrong charts.
+# The position is the order in which the figure appears when the notebook runs
+# top to bottom, as the extraction loop below counts them. If a figure cell is
+# added, removed or reordered, this table must be updated. A notebook's figures
+# are copied into the thesis only when every position it expects was produced;
+# a partial run is skipped with a warning rather than overwriting thesis figures.
 #
-# The cell id is pinned because the position alone is not enough. Adding or
-# removing a figure is caught by EXPECTED_FIGURE_COUNT, but REORDERING two
-# figure cells — or replacing one with another somewhere else in the notebook —
-# leaves the count intact, so every position was still "produced" and the map
-# wrote the wrong chart under the right thesis filename, silently and with exit
-# status 0. Comparing the producing cell's id turns that into a refusal. The
-# ids below are the English notebooks' (the thesis is English); the Turkish
-# mirrors carry different ids for notebooks 04 and 05, and are never copied
-# into the thesis, so this table is only consulted on an ``--lang en`` run.
+# The cell id is pinned because position alone is not enough: reordering two
+# figure cells leaves the count intact, so the map would write the wrong chart
+# under the right filename and exit 0. The ids are the English notebooks'; the
+# Turkish mirrors differ for notebooks 04 and 05 and are never copied into the
+# thesis, so this table is only consulted on an --lang en run.
 #
-# Figures deliberately absent from this table (e.g. NB02 figures 1-2, which
-# duplicate NB01 charts) stay in the export directory only.
+# Figures deliberately absent from this table stay in the export directory only.
 THESIS_FIGURE_MAP = {
     ("NB01", 1): ("cd11", "nb01-fig01-runtime-dist.png"),
     ("NB01", 2): ("cd13", "nb01-fig02-runtime-cdf.png"),
@@ -164,8 +157,7 @@ THESIS_FIGURE_MAP = {
     ("NB04", 4): ("ecd05", "nb04-fig04-residuals.png"),
     ("NB04", 5): ("ecd07", "nb04-fig05-dl-comparison.png"),
     # Figure 1 of each NB05 variant is the rank-correlation analysis. That cell
-    # deliberately saves no copy of its own (8ec8acf removed the savefig from
-    # all four NB05 notebooks), so this map is the only thing that puts it in
+    # saves no copy of its own, so this map is the only thing that puts it in
     # the thesis.
     ("NB05_32GPU", 1): ("7a843cee", "mae_spearman_vs_jct_gain_32gpu.png"),
     ("NB05_32GPU", 2): ("7cc8bbfc", "nb05-fig06-load-backfill-sensitivity_32gpu.png"),
@@ -185,11 +177,9 @@ THESIS_FIGURE_MAP = {
 
 # Total number of figures each notebook is expected to produce in a complete
 # top-to-bottom run. THESIS_FIGURE_MAP addresses figures by position, so a
-# figure inserted or removed anywhere shifts every later position: the map
-# would then still find all the positions it expects and would write the WRONG
-# images under the right thesis filenames. Comparing the total count catches
-# exactly that, which the per-position presence check cannot. A count-preserving
-# shuffle slips past it — that is what the pinned cell ids above are for.
+# figure inserted or removed anywhere shifts every later position and the map
+# would write the wrong images under the right filenames. Comparing the total
+# catches that; a count-preserving shuffle is what the pinned cell ids are for.
 EXPECTED_FIGURE_COUNT = {
     "NB01": 6,
     "NB02": 3,
@@ -199,26 +189,23 @@ EXPECTED_FIGURE_COUNT = {
     "NB05_256GPU": 7,
 }
 
-# Notebooks whose exported figures and tables report MODEL results: notebook 04
+# Notebooks whose exported figures and tables report model results: notebook 04
 # trains the models and reads its numbers back out of checkpoints, and both
-# notebook 05 variants simulate with the saved model artifacts. Only these are
-# judged against the provenance records in ``_stale_model_inputs``. Notebooks
-# 01-03 (data overview, workload analysis, feature engineering) touch neither a
-# checkpoint nor a model artifact, so refusing them because a model went stale
-# would be exactly the cry-wolf warning ``src.tuning._compute_provenance``'s
-# docstring cautions against.
+# notebook 05 variants simulate with the saved artifacts. Only these are judged
+# against the provenance records in ``_stale_model_inputs``. Notebooks 01 to 03
+# touch neither a checkpoint nor a model artifact.
 MODEL_DERIVED_PREFIXES = frozenset({"NB04", "NB05_32GPU", "NB05_256GPU"})
 
-# The notebooks' MODEL_DIR. Checkpoints are NOT given a constant here: they are
+# The notebooks' MODEL_DIR. Checkpoints are not given a constant here: they are
 # listed from the directory ``src.tuning`` itself resolves, so the listing and
-# the currency predicate can never end up looking at two different places.
+# the currency predicate cannot look at two different places.
 MODEL_DIR = BASE_DIR / "results" / "models"
 # Written by ``src.tuning.record_model_artifact`` next to every model it saves.
 _PROVENANCE_SUFFIX = ".provenance.json"
 
 # The notebooks reach results/models through a ``MODEL_DIR`` variable of their
-# own, so every artifact they touch is spelled ``MODEL_DIR / "<name>"`` — or,
-# for the per-seed LSTM checkpoints alone, ``MODEL_DIR / f"..._seed{seed}.pth"``.
+# own, so every artifact they touch is spelled ``MODEL_DIR / "<name>"``, or, for
+# the per-seed LSTM checkpoints alone, ``MODEL_DIR / f"..._seed{seed}.pth"``.
 _MODEL_DIR_VAR = "MODEL_DIR"
 _FORMAT_FIELD_RE = re.compile(r"\{[^}]*\}")
 
@@ -229,7 +216,7 @@ def _loaded_model_artifacts(nb_paths: list[Path]) -> tuple[set[str], list[re.Pat
     Read out of the notebooks' own source rather than restated here, because
     ``_stale_model_inputs`` and notebook 05's ``_reject_stale_artifacts`` are two
     halves of one contract and a list copied into this file would drift out of
-    step with the list the notebook enforces — which is precisely how this gate
+    step with the list the notebook enforces, which is how this gate
     came to judge a strictly smaller set than the notebook does.
 
     Returns the names spelled out in full, and the compiled form of the names
@@ -238,8 +225,8 @@ def _loaded_model_artifacts(nb_paths: list[Path]) -> tuple[set[str], list[re.Pat
     ``finalize_dl_model`` a ``{seed}`` template, notebook 05 rebuilds the same
     names with an f-string), so both spellings are normalised to one shape.
 
-    A notebook that is missing or that no longer parses contributes nothing —
-    the extraction loop reports a missing or unreadable notebook itself — and
+    A notebook that is missing or that no longer parses contributes nothing,
+    since the extraction loop reports a missing or unreadable notebook itself, and
     ``_stale_model_inputs`` treats an empty result as unverifiable rather than
     as nothing to check.
     """
@@ -308,9 +295,9 @@ def _stale_model_inputs(
     reason to REFUSE, exactly as it is in notebook 05's
     ``_reject_stale_artifacts``. Selecting instead the files that already carry
     a sidecar inverted that: a model written without one was never judged at
-    all, so the two halves of the contract disagreed about the same 16 files —
+    all, so the two halves of the contract disagreed about the same 16 files,
     the scalers, the median and Alibaba-estimate baselines and the per-seed LSTM
-    checkpoints — and once the checkpoints were refreshed this gate passed
+    checkpoints, and once the checkpoints were refreshed this gate passed
     notebooks that notebook 05 would have refused to simulate with, publishing
     their scheduling figures into ``thesis/latex/figures``.
 
@@ -323,7 +310,7 @@ def _stale_model_inputs(
     Absence is deliberately not a refusal here. Notebook 05 can insist on its
     required list because it is about to load those files; this script judges
     the record of a run that already happened, and the optional baselines and
-    the per-seed checkpoints are legitimately absent on some runs — reading
+    the per-seed checkpoints are legitimately absent on some runs, and reading
     "the reader never produced it" as a stale result would be the cry-wolf
     warning ``src.tuning._compute_provenance``'s docstring cautions against.
 
@@ -347,7 +334,7 @@ def _stale_model_inputs(
     if not loaded_names and not loaded_patterns:
         # Nothing was read out of the notebook sources, so an unstamped file
         # cannot be told apart from one a notebook loads. Reading that as
-        # "nothing to check" is the very shape of the hole this gate closes.
+        # nothing to check is the shape of the hole this gate closes.
         return [
             "notebook 04/05 kaynaklarında hiçbir model dosyası adı bulunamadı; "
             "hangi model dosyalarının güncel olması gerektiği belirlenemiyor"
@@ -380,7 +367,7 @@ def _stale_model_inputs(
         if model_artifact_is_current(path):
             continue
         # The two causes need different repairs, so each refusal says which it
-        # is — the same distinction ``_reject_stale_artifacts`` draws.
+        # is, the same distinction ``_reject_stale_artifacts`` draws.
         if not path.with_name(path.name + _PROVENANCE_SUFFIX).exists():
             why = "köken kaydı (sidecar) yok, güncellik denetiminden eski"
         else:
@@ -392,7 +379,7 @@ def _stale_model_inputs(
 def _report_stale_model_inputs(nb_file: str, stale: list[str]) -> None:
     """Print why a model-derived notebook was skipped, in the same loud shape as
     the other gates."""
-    print(f"\n⚠️  [UYARI] {nb_file}: bu notebook'un sayıları GÜNCEL DEĞİL — üretildiği")
+    print(f"\n⚠️  [UYARI] {nb_file}: bu notebook'un sayıları GÜNCEL DEĞİL. Üretildiği")
     print(f"    kaynak kod ağacı artık bu ağaç değil ({len(stale)} kayıt uyuşmuyor):")
     for name in stale[:10]:
         print(f"      • {name}")
@@ -428,14 +415,14 @@ def _audit_stored_outputs(nb: dict) -> list[str]:
       after the traceback and pandas has usually already displayed the table
       computed from the still-incomplete frame, so a crashed cell contributes a
       picture and a table indistinguishable from valid ones. The figure count is
-      unchanged by the crash, so EXPECTED_FIGURE_COUNT cannot see it either —
+      unchanged by the crash, so EXPECTED_FIGURE_COUNT cannot see it either.
       notebook 05 raised LinAlgError in its np.polyfit cell and the scatter plot
       with no regression line went to thesis/latex/figures under the mapped
       filename, with only ``[PNG]`` success lines printed and exit status 0.
     * Outputs of a cell that never ran (``execution_count: null``). They are left
       over from an earlier revision of the notebook, yet they occupy a figure
       position and count towards EXPECTED_FIGURE_COUNT exactly like a fresh
-      figure — so a stale figure HELPS the count gate pass instead of tripping
+      figure, so a stale figure helps the count gate pass instead of tripping
       it, and is then copied into the thesis. Cell d7a6e287 of the 256-GPU
       notebook 05 is exactly this: no execution count, one leftover image/png,
       already exported once as NB05_256GPU-Figure01.png.
@@ -444,12 +431,12 @@ def _audit_stored_outputs(nb: dict) -> list[str]:
     carry outputs: an output whose count is not above the one above it was
     produced in a different kernel session, so the stored outputs are a mixture
     of runs and their order is not the notebook's order. A GAP in the sequence
-    is deliberately not reported — it only shows that some cell was skipped or
+    is deliberately not reported: it only shows that some cell was skipped or
     cleared, while every output still present did come from the same increasing
     run, and a skipped figure cell shows up as a count mismatch in
     ``_check_figure_count``.
 
-    The high-water mark is raised by EVERY executed cell, including the ones
+    The high-water mark is raised by every executed cell, including the ones
     that store no output. Skipping those before reading their count left the
     commonest way a notebook goes stale invisible: editing an import, a path or
     a parameter cell (``N_GPU``, a seed, the load factor) and re-running just
@@ -478,10 +465,9 @@ def _audit_stored_outputs(nb: dict) -> list[str]:
 
         count = cell.get("execution_count")
         if not outputs:
-            # An output-less cell cannot itself be stale, but it DID run, so it
+            # An output-less cell cannot itself be stale, but it did run, so it
             # still fixes how late every cell below it must have run. Only a
-            # cell that never ran at all (count None) is passed over, so a
-            # trailing unrun cell stays acceptable.
+            # cell that never ran at all is passed over.
             if count is not None:
                 last_count = max(last_count, count)
             continue
@@ -531,7 +517,7 @@ def extract_from_nb_dict(
     When ``thesis_buffer`` is a dict, every figure whose (prefix, position)
     appears in ``THESIS_FIGURE_MAP`` is stored in it under that key, as
     ``(producing cell id, PNG bytes)``. Nothing is written to the thesis
-    directory here — the caller copies a notebook's figures only after
+    directory here. The caller copies a notebook's figures only after
     verifying the complete expected set was produced by the cells the map pins
     it to (see ``_check_figure_count`` and ``_sync_thesis_figures``).
 
@@ -539,13 +525,13 @@ def extract_from_nb_dict(
     instead of being written, for the caller to flush with ``_flush_exports``
     once the figure count is verified. Writing them here meant a count refusal
     left the git-tracked export directory holding files whose content had
-    shifted under unchanged positional names — ``NB01-Figure01.png`` holding
-    the chart the export convention calls figure 2 — after a run that had
+    shifted under unchanged positional names, ``NB01-Figure01.png`` holding
+    the chart the export convention calls figure 2, after a run that had
     already failed. Left as None the files are written immediately, which is
     what a caller extracting a single notebook wants.
 
-    Raises ``UntrustedNotebookOutputs`` — before writing or buffering anything,
-    so a rejected notebook leaves no half-written export behind — when the
+    Raises ``UntrustedNotebookOutputs``, before writing or buffering anything so a
+    rejected notebook leaves no half-written export behind, when the
     stored outputs fail ``_audit_stored_outputs``. The check lives here rather
     than only in the caller so that no future call site can extract from a
     crashed or unexecuted notebook by forgetting to ask first.
@@ -599,16 +585,12 @@ def extract_from_nb_dict(
                     # The producing cell's id is part of the name, not just the
                     # running position. Figures are protected against a shifted
                     # position by THESIS_FIGURE_MAP and EXPECTED_FIGURE_COUNT;
-                    # tables had nothing, so "NB04_Table10.html" meant the
-                    # deep-learning comparison in one export and a completely
-                    # different benchmark table in the next (a notebook whose
-                    # middle cells were re-run, or the other language's mirror,
-                    # renumbers every table after the first gap). Pinning the
-                    # cell id makes a shifted table land under a NEW filename —
-                    # a stale reference then fails to resolve instead of quietly
-                    # resolving to the wrong table. The position stays in front
-                    # so the directory still sorts in notebook order, and so two
-                    # tables displayed by the same cell stay distinct.
+                    # tables had nothing, so "NB04_Table10.html" meant one table
+                    # in one export and a different one in the next. Pinning the
+                    # cell id makes a shifted table land under a new filename, so
+                    # a stale reference fails to resolve instead of resolving to
+                    # the wrong table. The position stays in front so the
+                    # directory still sorts in notebook order.
                     stem = f"{prefix}_Table{table_idx:02d}"
                     out_name = f"{stem}_{cell_id}.html" if cell_id else f"{stem}.html"
                     pending.append(
@@ -651,11 +633,11 @@ def _strip_positional_index(html: str) -> str:
 
     Jupyter renders ``df`` with ``to_html()``, which writes the index as a
     leading ``<th>`` on every body row under an EMPTY header cell. For a
-    RangeIndex that column carries no information -- in the thesis it reads as
+    RangeIndex that column carries no information; in the thesis it reads as
     a nameless "0, 1, 2, ..." first column next to the model names.
 
     Only a pure positional index is removed. A table with a MEANINGFUL index
-    (model names, policies -- anything non-integer) is left untouched, as is a
+    such as model names or policies is left untouched, as is a
     table whose header cell is not empty, because there the index is data.
     """
     thead_m = _THEAD_RE.search(html)
@@ -667,7 +649,7 @@ def _strip_positional_index(html: str) -> str:
     if not rows:
         return html
     # Every body row must start with a plain-integer <th>, and those integers
-    # must be exactly 0..n-1 -- otherwise the index means something.
+    # must be exactly 0..n-1, otherwise the index means something.
     def _split_open_tag(row):
         open_tag, rest = row.split(">", 1)
         return open_tag + ">", rest
@@ -717,8 +699,8 @@ def _clean_stale_exports(prefix: str) -> None:
     Filenames lead with a POSITION (``{prefix}-Figure{N}.png``,
     ``{prefix}_Table{N}_{cell id}.html``): if a notebook used to produce, say, 7
     figures and now produces 6, the old Figure07 file was never removed by the
-    code that follows -- it just sat in the export directory looking like a
-    current file from this run (figures_tables-14). Deleting every file for this
+    code that follows: it just sat in the export directory looking like a
+    current file from this run. Deleting every file for this
     prefix up front makes "not present after export" mean "not produced this
     run," not "produced by some earlier run and never cleaned up." Its
     counterpart is that ``run_pipeline`` flushes the new files only after the
@@ -727,7 +709,7 @@ def _clean_stale_exports(prefix: str) -> None:
 
     The table glob is deliberately ``{prefix}_Table*.html`` rather than the exact
     new name shape, so it also clears tables exported before the cell id became
-    part of the name -- otherwise those would linger forever under names no run
+    part of the name, otherwise those would linger forever under names no run
     writes any more.
     """
     for stale_file in PNG_DIR.glob(f"{prefix}-Figure*.png"):
@@ -737,7 +719,7 @@ def _clean_stale_exports(prefix: str) -> None:
 
 def _report_untrusted_outputs(nb_file: str, problems: list[str]) -> None:
     """Print why a notebook was skipped, in the same loud shape as the count gate."""
-    print(f"\n⚠️  [UYARI] {nb_file}: saklı çıktılar GÜVENİLİR DEĞİL — bu notebook'tan")
+    print(f"\n⚠️  [UYARI] {nb_file}: saklı çıktılar GÜVENİLİR DEĞİL. Bu notebook'tan")
     print("    hiçbir şekil veya tablo aktarılmadı:")
     for problem in problems:
         print(f"      • {problem}")
@@ -751,8 +733,8 @@ def _check_figure_count(prefix: str, produced: int, sync_thesis: bool) -> str | 
 
     A figure added or removed anywhere shifts every later position, so
     THESIS_FIGURE_MAP would still find all the positions it expects and would
-    write the WRONG images under the right thesis filenames — which the
-    per-position presence check below cannot see. The count is checked for BOTH
+    write the wrong images under the right thesis filenames, which the
+    per-position presence check below cannot see. The count is checked for both
     languages, not only English: the export filenames are positional in the same
     way, and the Turkish export is an artifact set in its own right.
 
@@ -787,7 +769,7 @@ def _sync_thesis_figures(prefix: str, thesis_buffer: dict) -> tuple[int, str | N
 
     Returns (files written, refusal reason). Nothing from this notebook is
     copied, and a warning explains why, when a position THESIS_FIGURE_MAP
-    expects is absent — a stale or partial notebook run — or when the figure at
+    expects is absent, after a stale or partial notebook run, or when the figure at
     a position was produced by a cell other than the one the map pins it to. A
     mislabeled thesis figure is far worse than a stale one, and a swap of two
     figure cells is precisely a mislabel the count gate cannot see: both
@@ -807,7 +789,7 @@ def _sync_thesis_figures(prefix: str, thesis_buffer: dict) -> tuple[int, str | N
 
     missing = sorted(i for i in expected if (prefix, i) not in thesis_buffer)
     if missing:
-        print(f"\n⚠️  [UYARI] {prefix}: tez şekilleri GÜNCELLENMEDİ — beklenen "
+        print(f"\n⚠️  [UYARI] {prefix}: tez şekilleri GÜNCELLENMEDİ. Beklenen "
               f"{len(expected)} şekilden şu konumlar üretilmemiş: {missing}.")
         print("    Notebook baştan sona çalıştırılmamış olabilir ya da şekil sırası")
         print("    değişmiş olabilir (THESIS_FIGURE_MAP ile karşılaştırın). Yanlış")
@@ -821,7 +803,7 @@ def _sync_thesis_figures(prefix: str, thesis_buffer: dict) -> tuple[int, str | N
         if thesis_buffer[(prefix, i)][0] != pinned_id
     ]
     if shifted:
-        print(f"\n⚠️  [UYARI] {prefix}: tez şekilleri GÜNCELLENMEDİ — şekiller "
+        print(f"\n⚠️  [UYARI] {prefix}: tez şekilleri GÜNCELLENMEDİ. Şekiller "
               "THESIS_FIGURE_MAP'te kayıtlı hücrelerden gelmiyor:")
         for problem in shifted:
             print(f"      • {problem}")
@@ -848,15 +830,12 @@ def execute_notebook(nb_path: Path):
         nb_node = nbformat.read(f, as_version=4)
 
     # No per-cell timeout: notebook 04 trains 18+ models and its search cells run
-    # for hours; the previous 1800 s cap silently killed it mid-training.
+    # for hours, and the previous 1800 s cap killed it mid-training.
     #
-    # kernel_name="thesis-venv", not the generic "python3": this machine has
-    # more than one Jupyter kernel registered under the name "python3" (one
-    # per Python installation with ipykernel set up), so that name resolves
-    # to whichever one happens to be found first -- not necessarily this
-    # project's venv. "thesis-venv" is registered specifically for
-    # venv/bin/python and matches the kernelspec name every notebook in this
-    # repository declares in its own metadata (reproducibility-6).
+    # kernel_name="thesis-venv", not the generic "python3": this machine has more
+    # than one Jupyter kernel registered under "python3", so that name resolves
+    # to whichever is found first. "thesis-venv" is registered for venv/bin/python
+    # and matches the kernelspec every notebook in this repository declares.
     ep = ExecutePreprocessor(timeout=None, kernel_name="thesis-venv")
     try:
         ep.preprocess(nb_node, {"metadata": {"path": str(nb_path.parent)}})
@@ -880,14 +859,12 @@ def run_pipeline(lang: str = "en", auto_execute: bool = False, force_execute: bo
     nb_dir = BASE_DIR / "notebooks" / lang
     notebooks_list = NOTEBOOKS_TR if lang == "tr" else NOTEBOOKS_EN
 
-    # Which model files the currency gate has to judge, read out of the
-    # notebooks themselves. BOTH languages' mirrors are scanned whatever
-    # --lang this run is, because there is only ONE results/models: a Turkish
-    # run replays the same files an English one does, and reading only the
-    # language at hand would let a mirror that had drifted judge a smaller set
-    # than its counterpart. Scanned once, up front: executing a notebook
-    # rewrites its outputs, never its code cells, so --force-execute touches
-    # nothing this depends on.
+    # Which model files the currency gate has to judge, read out of the notebooks
+    # themselves. Both languages' mirrors are scanned whatever --lang this run
+    # is, because there is only one results/models: reading only the language at
+    # hand would let a drifted mirror judge a smaller set than its counterpart.
+    # Scanned once, up front, since executing a notebook rewrites its outputs and
+    # never its code cells.
     loaded_names, loaded_patterns = _loaded_model_artifacts([
         BASE_DIR / "notebooks" / nb_lang / nb_file
         for nb_lang, notebooks in (("en", NOTEBOOKS_EN), ("tr", NOTEBOOKS_TR))
@@ -904,9 +881,8 @@ def run_pipeline(lang: str = "en", auto_execute: bool = False, force_execute: bo
     total_pngs = 0
     total_htmls = 0
     total_thesis = 0
-    # Every reason a notebook was refused, whatever the reason: all of them end
-    # the run non-zero (see the raise after the loop), none of them may be left
-    # as a warning the caller reports as success.
+    # Every reason a notebook was refused. All of them end the run non-zero, and
+    # none may be left as a warning the caller reports as success.
     refusals: list[str] = []
 
     print("=" * 65)
@@ -930,15 +906,13 @@ def run_pipeline(lang: str = "en", auto_execute: bool = False, force_execute: bo
 
         thesis_buffer: dict | None = {} if sync_thesis else None
         # Filled by extraction, written only once the figure count is verified,
-        # so a refused notebook contributes nothing to the export directory.
-        # Never carries anything from a call that raised: the audit runs before
-        # the first file is buffered.
+        # so a refused notebook contributes nothing to the export directory. The
+        # audit runs before the first file is buffered.
         export_files: list = []
 
         # Try extracting from existing outputs. Stored outputs that cannot come
-        # from one clean run are refused here (see ``_audit_stored_outputs``);
-        # re-running the notebook is the only remedy, so --execute takes it and
-        # every other mode skips the notebook and fails at the end of the loop.
+        # from one clean run are refused here; re-running the notebook is the
+        # only remedy, so --execute takes it and every other mode skips it.
         reexecuted = False
         try:
             pngs, htmls = extract_from_nb_dict(
@@ -963,7 +937,7 @@ def run_pipeline(lang: str = "en", auto_execute: bool = False, force_execute: bo
                 export_files,
             )
             # Executed once already; the empty-output branch below must not run
-            # it a second time (notebook 04 trains for hours).
+            # it a second time, since notebook 04 trains for hours.
             reexecuted = True
 
         # If 0 outputs found
@@ -985,8 +959,8 @@ def run_pipeline(lang: str = "en", auto_execute: bool = False, force_execute: bo
                     )
             else:
                 # A notebook with no stored outputs contributes nothing to the
-                # export, so the run did NOT refresh it: refused like any other
-                # gap rather than warned about and then reported as success.
+                # export, so the run did not refresh it: refused like any other
+                # gap rather than warned about and reported as success.
                 print(
                     f"⚠️  [UYARI] '{nb_file}' çıktısı boş! Otomatik çalıştırmak için '--execute' bayrağını kullanabilirsiniz:\n"
                     f"     python scripts/export_thesis_results.py --execute\n"
@@ -994,11 +968,10 @@ def run_pipeline(lang: str = "en", auto_execute: bool = False, force_execute: bo
                 refusals.append(f"{nb_file}: hiçbir şekil veya tablo çıktısı yok")
                 continue
 
-        # Asked here, after every path that may have re-executed the notebook,
-        # so a run that retrained notebook 04 is judged on the records that run
-        # wrote rather than on the ones it replaced. The stored outputs cannot
-        # answer this themselves: they are the record of A run, not of which
-        # source tree that run used.
+        # Asked here, after every path that may have re-executed the notebook, so
+        # a run that retrained notebook 04 is judged on the records that run
+        # wrote. The stored outputs cannot answer this themselves: they record a
+        # run, not which source tree that run used.
         if prefix in MODEL_DERIVED_PREFIXES:
             stale = _stale_model_inputs(loaded_names, loaded_patterns)
             if stale:
@@ -1011,20 +984,16 @@ def run_pipeline(lang: str = "en", auto_execute: bool = False, force_execute: bo
 
         count_problem = _check_figure_count(prefix, pngs, sync_thesis)
         if count_problem:
-            # Nothing is written: the positions no longer line up with the ones
-            # the export filenames name, so flushing would leave the git-tracked
-            # export directory holding shifted images under unchanged names,
-            # after a run that has already failed.
+            # Nothing is written: the positions no longer line up with the export
+            # filenames, so flushing would leave the tracked export directory
+            # holding shifted images under unchanged names.
             refusals.append(f"{nb_file}: {count_problem}")
             continue
 
-        # Deleting this notebook's previous exports is deferred to here, beside
-        # the write that replaces them. It used to run before extraction, which
-        # meant every refusal above removed the git-tracked export set and wrote
-        # nothing back: a default run took out ten PNGs and eight NB04 tables
-        # while telling the reader to compare against them. Filenames are still
-        # positional, so the removal is still required (figures_tables-14) --
-        # only now it cannot happen unless the replacement is ready.
+        # Deleting this notebook's previous exports happens here, beside the write
+        # that replaces them, not before extraction. Filenames are positional, so
+        # the removal is required, but it cannot happen unless the replacement is
+        # ready.
         _clean_stale_exports(prefix)
         _flush_exports(export_files)
         total_pngs += pngs
@@ -1037,13 +1006,10 @@ def run_pipeline(lang: str = "en", auto_execute: bool = False, force_execute: bo
                 refusals.append(f"{nb_file}: {sync_problem}")
 
     # Raised before the closing summary: a run that refused a notebook must not
-    # print "İşlem Tamamlandı" and exit 0, because the caller
-    # (run_all_experiments.sh, set -euo pipefail) would otherwise print
-    # "PIPELINE COMPLETED SUCCESSFULLY" over an export that is missing a
-    # notebook's figures and tables. This covers EVERY refusal, not only the
-    # untrusted-outputs one: a figure-count mismatch used to leave
-    # thesis/latex/figures holding the previous run's images with nothing but a
-    # warning buried among dozens of [PNG]/[HTML] success lines to say so.
+    # print "İşlem Tamamlandı" and exit 0, because run_all_experiments.sh would
+    # then print "PIPELINE COMPLETED SUCCESSFULLY" over an export missing a
+    # notebook's figures and tables. This covers every refusal, not only the
+    # untrusted-outputs one.
     if refusals:
         thesis_line = ""
         if sync_thesis:
@@ -1060,9 +1026,8 @@ def run_pipeline(lang: str = "en", auto_execute: bool = False, force_execute: bo
         )
 
     # The summary below is what run_all_experiments.sh turns into a success
-    # banner, so it may only be printed when every mapped thesis figure really
-    # was rewritten. Reaching here with a shortfall would mean some gap produced
-    # no entry in ``refusals``; that is a bug in this script, not a green run.
+    # banner, so it may only be printed when every mapped thesis figure was
+    # rewritten. Reaching here with a shortfall would be a bug in this script.
     if sync_thesis and total_thesis != len(THESIS_FIGURE_MAP):
         raise RuntimeError(
             f"❌ [HATA] Tez şekillerinin yalnızca {total_thesis}/{len(THESIS_FIGURE_MAP)} "
